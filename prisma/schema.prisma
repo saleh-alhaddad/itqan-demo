@@ -1,0 +1,25 @@
+// Prisma 7 uses the Rust-free `prisma-client` generator, which requires an explicit
+// output path — there is no "magic" generation into node_modules. The generated client
+// is ESM (package.json has "type": "module") and is gitignored, so `prisma generate`
+// is a required step of any fresh checkout.
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+// Prisma 7 no longer accepts `url` here. The connection string lives in
+// prisma.config.ts for Migrate, and reaches the client at runtime through the
+// @prisma/adapter-pg driver adapter (see src/lib/db.ts).
+datasource db {
+  provider = "postgresql"
+}
+
+/// Throwaway model for T01 only: it exists to prove that a Next.js route handler can
+/// read a real row out of Postgres through Prisma in a production build. T02 replaces
+/// it with the real domain schema.
+model Healthcheck {
+  id        String   @id @default(uuid())
+  label     String   @unique
+  createdAt DateTime @default(now())
+}

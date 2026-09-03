@@ -3,13 +3,49 @@
 Stack:           Next.js (App Router, TypeScript) · PostgreSQL · Prisma ORM · React UI.
                  Single repo, single deploy; API surface is Next.js route handlers /
                  server actions, not a separate service.  · user-stated · 2026-09-03
-Test tooling:    not yet established — follows from the stack choice.  · detected · 2026-09-03
-Conventions:     none detected (no source files). To be established with the stack.
-                 · detected · 2026-09-03
+Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node env,
+                 `fileParallelism: false` because integration tests share one database) and
+                 Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
+                 Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Conventions:     established in T01 (greenfield — nothing to detect) · 2026-09-04
+  Package manager  pnpm 10.30.3. `pnpm-workspace.yaml` carries `onlyBuiltDependencies`
+                   (prisma, @prisma/engines, esbuild, @node-rs/argon2) — pnpm 10 blocks
+                   install scripts by default and Prisma silently will not work without it.
+  Module system    ESM. `package.json` has `"type": "module"` — REQUIRED by Prisma 7, not a
+                   preference. `.ts`/`.mjs` config files only; no CommonJS.
+  Layout           `src/app` (App Router, route groups `(auth)` / `(app)`), `src/lib`
+                   (framework-free logic), `src/components`, `src/generated/prisma`
+                   (gitignored — `prisma generate` is a required step of a fresh checkout).
+                   Tests live OUTSIDE src: `tests/integration/`, `e2e/`.
+  Import alias     `@/*` → `src/*`, mirrored in tsconfig, vitest.config and next.
+  Linting          ESLint 9 flat config (`eslint.config.mjs`) from `eslint-config-next`.
+  Async APIs       Next 16 removed synchronous `params` / `searchParams` / `cookies()` /
+                   `headers()`. ALWAYS await them — non-awaited access compiles cleanly
+                   while being broken, so the compiler will not catch this for you.
+  Database access  One `prisma` singleton from `src/lib/db.ts`, cached on globalThis outside
+                   production (Next's dev server otherwise opens a pool per hot reload).
+                   Prisma 7 has NO datasource `url`: Migrate reads it from
+                   `prisma.config.ts`, the client gets it via the `@prisma/adapter-pg`
+                   driver adapter. `prisma.config.ts` imports `dotenv/config` explicitly
+                   because v7 no longer loads `.env` on its own.
+  Databases        `itqan_dev` and `itqan_test` on local Postgres 18 :5432 (role `itqan`).
+                   `tests/setup.ts` force-loads `.env.test`, so `pnpm test` can never
+                   touch dev data. `docker-compose.yml` is the reproducible/CI equivalent
+                   on :5433.
+  Ports            Never assume :3000 — it is occupied on the dev machine by an unrelated
+                   app. E2E uses :3100; ad-hoc probes allocate a free ephemeral port.
+  Node version     Works on the local Node 25.2.1, but Prisma 7 prints an unsupported-version
+                   banner. **CI should pin Node 24 LTS** so that warning never masks a real
+                   one.
 Branch format:   task/NNNN-<slug> — suite default, adopted because the repo has no
                  existing convention to follow.  · inferred · 2026-09-03
 Commit format:   conventional commits — suite default for a greenfield repo; no CI to
                  check against yet.  · inferred · 2026-09-03
+Pinned versions: next 16.3.4 · react 19.2.8 · tailwindcss 4.3.3 · prisma 7.10.0 AND
+                 @prisma/client 7.10.0 (**both**, exactly — the `prisma` CLI's npm `latest`
+                 tag is the release candidate 8.0.0-rc.12, so an unpinned install pairs an
+                 RC CLI with a stable client) · zod 4.5.4 · @node-rs/argon2 2.2.0 ·
+                 vitest 5.0.0 · @playwright/test 1.62.1.  · verified against the registry · 2026-09-04
 Copy source:     hardcoded-OK — the MVP is English-only, so user-facing strings may be
                  written in place. Revisit before adding any locale.  · user-stated · 2026-09-03
 

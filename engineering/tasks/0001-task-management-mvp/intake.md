@@ -169,3 +169,85 @@ Answer:   Approved, as written. The two flagged items were presented before the 
 Locks:    define.approved = true. The 16 decisions above are settled and are NOT
           re-litigated by any later phase or resumed run. The next phase is `blueprint`.
           The run halts here per the original instruction: no plan, no code, no commit.
+
+### Q18 · blueprint · 2026-09-04 · APPROVAL GATE
+Question: Do you approve plan.md as the basis for building?
+My guess: (no guess offered — a gate is the user's call, not a default)
+Answer:   Approved, as written. The dependency findings (Prisma RC/stable mismatch, the
+          Prisma 7 + Next 16 + Turbopack bundling break, Next 16's removed synchronous
+          dynamic APIs, three deprecated packages, two stale DnD libraries) and decision D1
+          (dense ordering without a unique constraint) were all presented before the
+          decision. None was overridden.
+Locks:    blueprint.approved = true. The 18 tasks, their order, and their acceptance
+          criteria are settled and are NOT re-litigated by construct. Deviating from the
+          approved shape requires a plan amendment (v2 + re-approval of the changed part),
+          not a ruling. Next phase: `construct`, starting at T01.
+Cadence:  The user was offered "stop for review after each task" as a distinct option and
+          chose "Approved as written" instead, so the run proceeds continuously through the
+          task list (state.json mode.loop moved step → loop). Commit consent is UNCHANGED at
+          `gate`: nothing is committed without the user's explicit approval (§12).
+
+### Q19 · blueprint · 2026-09-04
+Question: T03 — how should sessions be stored: stateless sealed cookie, or a DB-backed
+          session table?
+My guess: DB-backed session table
+Answer:   DB-backed session table
+Locks:    A `Session` model is added to the T02 schema (opaque random token in the cookie,
+          userId FK, expiresAt), and T03 implements create/read/destroy against it with the
+          30-day rolling expiry refreshed on read. Logout deletes the row, so revocation is
+          real rather than client-side only. Consequence carried forward: every
+          authenticated request costs one indexed session lookup — accepted deliberately, in
+          exchange for closing a finding `harden` would otherwise raise on this surface.
+
+### Q20 · blueprint · 2026-09-04
+Question: T10 — which drag-and-drop library, given that both candidates are stale?
+My guess: @hello-pangea/dnd
+Answer:   @hello-pangea/dnd (18.0.1)
+Locks:    The only candidate declaring `react ^19` in its peer range. `@dnd-kit` is not
+          installed. T10's build order is unchanged and remains load-bearing: the explicit
+          keyboard-reachable move control is built and tested FIRST, drag second, so the
+          board is fully operable if this dependency later has to be dropped.
+
+---
+
+### R1 · construct/T01 · 2026-09-04 · RULING (not an amendment)
+Situation: The plan's T01 Shape names `docker-compose.yml` as the database. The Docker
+           daemon is not running on this machine, but Homebrew PostgreSQL 18.1 is live on
+           :5432 and connectable.
+Ruling:    Dev and test point at the local instance (`itqan_dev`, `itqan_test`, role
+           `itqan`). `docker-compose.yml` is still written and committed as the
+           reproducible/CI path, on :5433.
+Why it is a ruling, not an amendment: the approved Shape (a Postgres 18 database reachable
+           by connection string, plus a compose file) is unchanged. Which *instance* a
+           developer points at is a local environment detail the gate did not decide.
+
+### R2 · construct/T01 · 2026-09-04 · RULING
+Situation: Prisma 7.10.0's preinstall prints "Prisma only supports Node.js versions 20.19+,
+           22.12+, 24.0+" on this machine's Node v25.2.1.
+Ruling:    Proceed on Node 25. Verified non-fatal, not assumed: `prisma -v` exits 0 with the
+           query compiler enabled, `migrate dev` applied cleanly, and the production build
+           and both test runners work. The banner is a stale version check that does not
+           recognise 25 as satisfying "24.0+".
+Follow-up: CI should pin Node 24 LTS so the warning does not become noise that hides a real
+           one. Recorded in standards.md.
+
+### R3 · construct/T01 · 2026-09-04 · RULING
+Situation: Port 3000 is occupied on this machine by an unrelated application. An initial
+           verification curl received HTTP 200 **from that other server**, not from ours.
+Ruling:    Playwright's webServer binds :3100 (`E2E_PORT` overridable), and manual probes
+           allocate a free ephemeral port. A suite that silently exercises someone else's
+           app is worse than one that refuses to start.
+Why it matters: this is the exact shape of a false green — the status code was right and the
+           subject was wrong. Verification asserts a value only our server could produce.
+
+### R4 · construct/T01 · 2026-09-04 · RULING — Prisma 7 API discovered at build time
+Situation: Prisma 7 **removed `url` from the datasource block** (error P1012). The
+           connection string now lives in `prisma.config.ts` for Migrate, and reaches the
+           client at runtime through a **driver adapter**.
+Ruling:    Added `@prisma/adapter-pg@7.10.0` + `pg`; `src/lib/db.ts` constructs
+           `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Also added
+           `prisma.config.ts` with an explicit `dotenv/config` import, because v7 no longer
+           loads `.env` implicitly.
+Why it is a ruling: T01's stated Goal — prove the Next 16 → Prisma 7 → Postgres path — is
+           unchanged, and no other task's acceptance moves. This is the surprise T01 was
+           ordered first to find; it cost one dependency instead of a mid-build redesign.
