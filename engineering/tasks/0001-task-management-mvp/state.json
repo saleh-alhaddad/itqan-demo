@@ -1,0 +1,66 @@
+{
+  "task": "0001-task-management-mvp",
+  "title": "Task management app — teams, boards, due dates",
+  "role": "principal",
+  "mode": {
+    "agents": "single",
+    "loop": "step",
+    "commits": "gate"
+  },
+  "halt_after": "define",
+  "phases": {
+    "define": {
+      "status": "done",
+      "validated": true,
+      "approved": true,
+      "artifact": "spec.md",
+      "note": "Approved by the user at the gate on 2026-09-03, after being shown the no-password-reset risk and the polling-vs-push resolution. Fresh-eyes pass fixed 6 defects before presentation (SC5 auth-leak ambiguity, SC10 flaky timing window, SC11 unprovable claim, unspecified session lifetime, no leave-team path, silent column-delete cascade)."
+    },
+    "design": {
+      "status": "done",
+      "validated": true,
+      "artifact": "design.md",
+      "note": "UI intake per define Step 1b — no mockups supplied; direction distilled from Q16."
+    },
+    "blueprint": {
+      "status": "todo",
+      "validated": false,
+      "approved": false,
+      "artifact": null
+    },
+    "construct": {
+      "status": "todo",
+      "validated": false,
+      "artifact": null
+    },
+    "verify": {
+      "status": "todo",
+      "validated": false,
+      "artifact": null
+    },
+    "harden": {
+      "status": "todo",
+      "validated": false,
+      "approved": false,
+      "artifact": null,
+      "note": "SCHEDULED, not optional: self-hosted email+password auth is a security-sensitive surface (hashing, session fixation, login brute-force, and the member-lookup enumeration oracle in SC7). Must run before any release."
+    },
+    "inspect": {
+      "status": "todo",
+      "validated": false,
+      "artifact": null
+    },
+    "release": {
+      "status": "todo",
+      "validated": false,
+      "approved": false,
+      "artifact": null
+    }
+  },
+  "open_items_for_resume": [
+    "Git isolation is unresolved: the repo has ZERO commits, so master is an unborn ref and there was nothing to branch from. Establish a baseline commit on a main branch before creating task/0001-task-management-mvp.",
+    "I5 (dense integer ordering) is deferred to blueprint by design — the spec commits to stable explicit ordering, not to an encoding of it.",
+    "No password reset exists. Flagged as the largest MVP product risk, accepted knowingly."
+  ],
+  "halt_reason": "User instruction: stop after the spec gate. Gate passed; run ended cleanly here."
+}
