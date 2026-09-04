@@ -9,9 +9,22 @@ afterAll(async () => { await prisma.$disconnect() })
 
 const PASSWORD = 'a-perfectly-fine-password'
 let ip: string
+let ipCounter = 0
 
-/** A distinct IP per test, so buckets never leak between them. */
-beforeEach(() => { ip = `198.51.100.${Math.floor(Math.random() * 250) + 1}` })
+/**
+ * A throttle bucket key that is unique per test AND per run.
+ *
+ * Two earlier attempts at this were wrong, and both failed intermittently:
+ *   - a random address from one /24 — random collides, and a clash makes one test inherit
+ *     another's failure count;
+ *   - a counter prefixed with `Date.now() % 200` — only 200 possible prefixes, and
+ *     **AuthAttempt rows persist in the test database between runs**, so separate runs
+ *     collided and inherited each other's counters.
+ * The key is the identifier, not an address, so it just has to be unique. A full timestamp
+ * plus randomness plus a counter cannot collide within a run or across them.
+ */
+const RUN = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+beforeEach(() => { ip = `ip-${RUN}-${++ipCounter}` })
 
 const attempt = (url: string, body: unknown, fromIp = ip) =>
   new Request(`http://localhost${url}`, {
@@ -62,21 +75,35 @@ describe('harden C1 — login is throttled', () => {
 
   it('counts the EMAIL bucket, so rotating IPs does not escape it', async () => {
     const email = await anAccount()
-    for (let i = 0; i < 8; i++) {
-      await login(attempt('/api/auth/login', { email, password: 'x' }, `203.0.113.${i + 1}`))
+
+    // Attempt until the throttle actually engages, rather than assuming a fixed attempt
+    // index does it. Attempts made DURING a cooldown are refused without incrementing the
+    // counter, so how many requests it takes depends on how fast the loop runs — an earlier
+    // version asserted attempt 9 and failed about two runs in five.
+    let engaged = false
+    for (let i = 0; i < 12 && !engaged; i++) {
+      const res = await login(attempt('/api/auth/login', { email, password: 'x' }, `${ip}.${i}`))
+      engaged = res.status === 429
     }
-    // A fresh IP, same account — still refused, because the address is what is being attacked.
-    const res = await login(attempt('/api/auth/login', { email, password: 'x' }, '203.0.113.200'))
-    expect(res.status).toBe(429)
+    expect(engaged, 'the throttle never engaged').toBe(true)
+
+    // Asserted immediately, while the cooldown is known to be in force: a brand-new IP is
+    // still refused, because the ADDRESS is what is being attacked.
+    const fresh = await login(attempt('/api/auth/login', { email, password: 'x' }, `${ip}.fresh`))
+    expect(fresh.status).toBe(429)
   })
 
   it('counts the IP bucket, so spraying many addresses does not escape it', async () => {
-    for (let i = 0; i < 8; i++) {
-      await login(attempt('/api/auth/login', { email: `spray-${i}@example.test`, password: 'x' }))
+    let engaged = false
+    for (let i = 0; i < 12 && !engaged; i++) {
+      const res = await login(attempt('/api/auth/login', { email: `spray-${i}-${ip}@example.test`, password: 'x' }))
+      engaged = res.status === 429
     }
-    // A brand-new address from the same host — still refused.
-    const res = await login(attempt('/api/auth/login', { email: 'spray-new@example.test', password: 'x' }))
-    expect(res.status).toBe(429)
+    expect(engaged, 'the throttle never engaged').toBe(true)
+
+    // A brand-new address from the same host, asserted while the cooldown is in force.
+    const fresh = await login(attempt('/api/auth/login', { email: `spray-new-${ip}@example.test`, password: 'x' }))
+    expect(fresh.status).toBe(429)
   })
 
   it('is a COOLDOWN, not a lockout: it always elapses', async () => {

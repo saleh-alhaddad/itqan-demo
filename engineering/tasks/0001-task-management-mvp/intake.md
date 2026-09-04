@@ -473,3 +473,22 @@ otherwise a dead end. The e2e now clicks those links, which proves reachability 
 side effect of testing the feature.
 Rule already recorded from R13 (count entry points, not assertions) — this is its second
 instance in two days. Extended in standards.md to: a page with no inbound link is unbuilt.
+
+### R18 · harden/second pass · 2026-09-04 · TWO WRONG DIAGNOSES BEFORE THE RIGHT ONE
+The throttle tests failed intermittently (~2 runs in 5). Worth recording because the first
+two attempts to fix it were guesses, and the process exists to prevent exactly that.
+
+1. **Guess one:** "random test IPs collide." Replaced random with a counter — and the
+   failure rate got WORSE (6 of 10). A change that makes things worse is proof the diagnosis
+   was wrong, not a reason to try a third variant.
+2. **Then read the actual failures.** Two named tests, `expected 401 to be 429`. Cause:
+   attempts made DURING a cooldown are refused *without incrementing the counter*, so how
+   many requests it takes to still be inside the window depends on wall-clock speed. The
+   tests asserted a fixed attempt index against time-dependent state. Fixed by looping until
+   the throttle is observed to engage, then asserting immediately.
+3. **A second, separate cause underneath it.** `AuthAttempt` rows persist in the test
+   database between runs, and my counter prefix had only 200 possible values
+   (`Date.now() % 200`), so runs collided and inherited each other's counters. Fixed with a
+   full timestamp plus randomness.
+Verified across twelve consecutive runs alternating America/Los_Angeles and Asia/Tokyo: 0
+failures. Both lessons recorded in standards.md.

@@ -7,6 +7,16 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Test isolation:  State that PERSISTS in the test database between runs (throttle buckets,
+                 counters) needs a key unique per test AND per run — a full timestamp plus
+                 randomness, never a small modulus. Two attempts at this failed
+                 intermittently before the cause was read rather than guessed.
+                 · learned in harden · 2026-09-04
+Time-dependent:  Never assert a fixed attempt index against state that decays on a clock.
+                 The throttle tests asserted "attempt 9 is refused"; attempts made during a
+                 cooldown are refused WITHOUT incrementing, so whether attempt 9 is still
+                 inside the window depends on how fast the loop ran. Loop until the state is
+                 observed, then assert immediately.  · learned in harden · 2026-09-04
 Security headers: Set in `next.config.ts` `headers()`. The CSP keeps `'unsafe-inline'` for
                  script because Next injects inline bootstrap; it is NOT XSS-proof, and the
                  nonce upgrade needs middleware. Adding or tightening a CSP must be proven
