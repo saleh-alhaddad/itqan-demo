@@ -92,3 +92,19 @@ signed-in stranger following another person's board URL gets a 404.
 **A defect a passing test hid (R7):** the redirect e2e was green while the server logged an
 `ApiError` on every signed-out visit — the page used the route-handler guard, which throws.
 Pages now use `requireUserOrRedirect()`.
+
+### 2026-09-04 · T07 follow-up — a real data leak, and the rule that replaced it
+Adding `loading.tsx` (design.md's skeleton) put the board page inside a Suspense boundary.
+That made Next stream the response, and streaming exposed a flaw in where authorization
+lived: the route LAYOUT checked access while the PAGE loaded the board unscoped, and Next
+renders those concurrently. The result was a 404 response whose RSC payload carried another
+team's board name, column names, ids, and task titles.
+
+Authorization now lives inside the query (`loadBoardFor(userId, boardId)`), so a non-member
+gets null and there is nothing to serialise. The layout check stays as defence in depth and
+to set the status before headers flush. Recorded as an ADR — it governs every future
+team-scoped read.
+
+The original test asserted only `status === 404`, which was true throughout. The regression
+test asserts the response BODY, and was mutation-checked: reverting the query to unscoped
+turns it red.

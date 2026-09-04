@@ -300,3 +300,22 @@ Fix:       added `requireUserOrRedirect()` for pages; handlers keep `requireUser
 Worth remembering: the assertion was about the user-visible outcome and the outcome was
            correct — the defect was only visible in the server log. A green suite is not
            the same as a clean run.
+
+### R8 · construct/T07 · 2026-09-04 · SECURITY DEFECT FOUND AND FIXED
+Situation: a signed-in stranger requesting another team's board URL received HTTP 404 whose
+           RSC flight payload contained the victim's board name, column names, ids, and a
+           planted task title. Verified with a scripted probe, not inferred.
+Cause:     access was checked in the route's LAYOUT while the PAGE loaded the board
+           unscoped. Next renders layout and page concurrently, so the page's data was
+           serialised into the stream even though the layout threw `notFound()`.
+Fix:       authorization moved INTO the query — `loadBoardFor(userId, boardId)` carries the
+           membership predicate, so a non-member gets null and there is nothing to render.
+           The layout check remains as defence in depth and to set the status before the
+           `loading.tsx` Suspense boundary flushes headers.
+Recorded:  as an ADR in `decisions.md` — it is a rule for every future team-scoped read.
+Two lessons worth keeping:
+  1. **A passing test hid it.** The original e2e asserted `status === 404`, which was true
+     while the body leaked. Assertions on status alone do not cover disclosure.
+  2. **The design requirement caused it.** Adding `loading.tsx` for design.md's skeleton
+     introduced the Suspense boundary that made the page stream; before that, the same code
+     returned a clean 404. A UI requirement silently changed a security-relevant behaviour.

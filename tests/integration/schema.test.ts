@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import { prisma } from '@/lib/db'
-import { makeUser, makeTeam, makeBoard, makeFullTree } from '../factories'
+import { makeUser, makeTeam, makeFullTree } from '../factories'
 
 afterAll(async () => { await prisma.$disconnect() })
 

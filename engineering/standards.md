@@ -7,6 +7,15 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Proving set:     A slice is not green until ALL FOUR pass: `pnpm lint` · `pnpm test` ·
+                 `pnpm test:e2e` · `pnpm build`. Lint is in the set because React 19's
+                 `react-hooks/set-state-in-effect` caught a genuine architectural problem
+                 (fetch-in-effect where the server should render), not a style nit — and it
+                 was committed past once before this rule existed.  · learned in T07 · 2026-09-04
+Security rule:   Team-scoped reads embed the membership predicate IN THE QUERY. Never rely
+                 on a layout: Next renders layouts and pages concurrently, so a page that
+                 loads unscoped data leaks it through the RSC payload even when the layout
+                 returns 404. See decisions.md.  · learned in T07 · 2026-09-04
 Conventions:     established in T01 (greenfield — nothing to detect) · 2026-09-04
   Package manager  pnpm 10.30.3. `pnpm-workspace.yaml` carries `onlyBuiltDependencies`
                    (prisma, @prisma/engines, esbuild, @node-rs/argon2) — pnpm 10 blocks

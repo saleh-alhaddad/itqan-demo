@@ -1,30 +1,28 @@
 import { notFound } from 'next/navigation'
 import { BoardView } from '@/components/board/BoardView'
-import { requireUserOrRedirect, requireBoardAccess } from '@/lib/auth/guard'
+import { requireUserOrRedirect } from '@/lib/auth/guard'
+import { loadBoardFor } from '@/lib/boards'
 
 /**
- * The board route.
+ * The board.
  *
- * Access is checked here as well as in the API the client calls. That is not redundancy for
- * its own sake: without it a stranger who knows a board id would get a rendered shell and a
- * 404 a moment later, which both looks broken and confirms the id is worth guessing at.
+ * The authorization is INSIDE `loadBoardFor` — it queries by membership, so a non-member
+ * gets null and there is nothing to render. This page does not rely on the route's layout
+ * for that: Next renders layouts and pages concurrently, so a page that loaded unscoped
+ * data would serialise it into the RSC payload even while the layout was throwing a 404.
  */
 export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
   // Next 16: params is a Promise.
   const { boardId } = await params
   const user = await requireUserOrRedirect()
 
-  try {
-    await requireBoardAccess(user.id, boardId)
-  } catch {
-    // The page equivalent of the API's shared 404: a board in someone else's team is
-    // indistinguishable from one that does not exist (I2).
-    notFound()
-  }
+  const board = await loadBoardFor(user.id, boardId)
+  // Inaccessible and absent are the same outcome (I2).
+  if (!board) notFound()
 
   return (
     <main className="h-svh">
-      <BoardView boardId={boardId} />
+      <BoardView initialBoard={board} />
     </main>
   )
 }

@@ -3,7 +3,7 @@ export type BoardTask = {
   id: string
   title: string
   description: string | null
-  dueDate: string | null
+  dueDate: Date | string | null
   position: number
   columnId: string
   assignees: { id: string; name: string; email: string }[]

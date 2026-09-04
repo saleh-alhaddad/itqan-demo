@@ -42,6 +42,51 @@ test('the login page offers no password reset, because none exists', async ({ pa
   await expect(page.getByRole('link', { name: /reset/i })).toHaveCount(0)
 })
 
+/**
+ * REGRESSION (SC5). An earlier version checked board access in the route's layout. Next
+ * renders a layout and its page CONCURRENTLY, so the page loaded the board and serialised
+ * it into the RSC flight payload even as the layout threw a 404 — the response carried a
+ * 404 status AND the board's contents. Authorization now lives inside the query
+ * (`loadBoardFor`), which cannot be bypassed by a call site.
+ *
+ * This asserts the RESPONSE BODY, not just the status: the status was already correct
+ * while the data was leaking.
+ */
+test('a stranger\'s 404 contains none of the board\'s data (SC5 regression)', async ({ browser, request }) => {
+  const a = await browser.newContext()
+  const pageA = await a.newPage()
+  await signUp(pageA)
+  await pageA.waitForURL(/\/boards\/[0-9a-f-]+$/)
+  const victimUrl = pageA.url()
+  const victimBoardId = victimUrl.split('/').pop()!
+
+  // Read the victim's board through their own session, so the test knows exactly which
+  // strings must NOT appear in the stranger's response.
+  const cookieHeader = (await a.cookies()).map((c) => `${c.name}=${c.value}`).join('; ')
+  const board = await (
+    await request.get(`/api/boards/${victimBoardId}`, { headers: { cookie: cookieHeader } })
+  ).json()
+  const victimColumnName: string = board.columns[0].name
+
+  const b = await browser.newContext()
+  const pageB = await b.newPage()
+  await signUp(pageB)
+  await pageB.waitForURL(/\/boards\/[0-9a-f-]+$/)
+
+  const res = await pageB.goto(victimUrl)
+  expect(res?.status()).toBe(404)
+
+  // Assert the BODY, not just the status: the status was already correct while the RSC
+  // payload still carried the whole board.
+  const html = await pageB.content()
+  expect(html).not.toContain(victimColumnName)
+  expect(html).not.toContain(board.name)
+  expect(html).not.toContain(board.columns[0].id)
+
+  await a.close()
+  await b.close()
+})
+
 test('a signed-in stranger cannot see someone else\'s board (SC5)', async ({ browser }) => {
   // Person A makes a board.
   const a = await browser.newContext()

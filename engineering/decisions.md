@@ -72,3 +72,29 @@ Alternatives: Add a provider now (rejected for the MVP — but note it unlocks r
 Status:       accepted
 Known cost:   A forgotten password is unrecoverable. This is the largest product risk in
               the MVP and is recorded as such in the spec — accepted knowingly, not missed.
+
+## Authorization lives in the query, never in a layout · 2026-09-04
+Decision:     Every read of team-scoped data is fetched by a function that takes the ACTOR
+              and embeds the membership predicate in the query itself (`loadBoardFor(userId,
+              boardId)`, and the `require*Access` guards). A route layout may repeat the
+              check, but it is never the boundary.
+Why:          Found the hard way in T07. The board page checked access in
+              `app/(app)/boards/[boardId]/layout.tsx` and then loaded the board unscoped in
+              the page. **Next renders a layout and its page concurrently.** The layout threw
+              `notFound()` and the response carried a correct 404 status — while the page had
+              already queried the board and serialised it into the RSC flight payload. A
+              signed-in stranger received a 404 containing another team's board name, column
+              names, ids, and task titles.
+              The status code was right the whole time. Only an assertion on the response
+              BODY exposed it, which is why `e2e/board.spec.ts` asserts absence of the
+              victim's strings rather than just `status === 404`.
+Alternatives: Layout-level guards (rejected — demonstrably unsound in the App Router, and
+              unsound in a way that looks correct in a browser). Middleware-level guards
+              (rejected for this: the check needs a database lookup, and middleware would
+              duplicate the ownership rules it cannot see).
+Consequence:  A page or handler CANNOT obtain team-scoped data without passing the actor.
+              This is the read-side of the guards-return-the-resource rule: the only way to
+              get the data is through the check, so a new call site cannot forget it.
+Status:       accepted
+Guarded by:   `e2e/board.spec.ts` "a stranger's 404 contains none of the board's data",
+              mutation-checked — reverting the query to unscoped turns it red.
