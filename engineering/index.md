@@ -2,4 +2,4 @@
 
 | # | task folder              | title                             | status              |
 |---|--------------------------|-----------------------------------|---------------------|
-| 1 | 0001-task-management-mvp | Task management app — teams, boards, due dates | harden CLOSED — 0 findings at any severity — next: inspect, then release |
+| 1 | 0001-task-management-mvp | Task management app — teams, boards, due dates | inspect done — 3 Critical + 2 High BLOCK release, awaiting fixes |
