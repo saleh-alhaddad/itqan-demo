@@ -20,7 +20,7 @@
       "status": "done",
       "validated": true,
       "artifact": "design.md",
-      "note": "UI intake per define Step 1b \u2014 no mockups supplied; direction distilled from Q16."
+      "note": "REVISED 2026-09-04 from design-refs/board-reference.png, treated as direction not a pixel target. Adopted (visual only, no new capability): five-hue accent scale cycled BY COLUMN POSITION (no new field; restates I3; stable across reloads), coloured card titles, roomier density (320px columns, 14px card padding), three-band card anatomy, initials avatar stack replacing comma-separated names, pill count chips, flat-fill depth strategy. Contrast COMPUTED not estimated (design-refs/contrast.py, validated black-on-white=21.00): every ink/surface pair 5.00-5.04. Two findings: --muted-foreground drops to 4.21 on tinted cards so a --tint-muted-foreground 0.500 token was added (5.34); and the due-date badges were re-solved against all five tints at once, not one card surface. NOT adopted: 10 items that are FEATURES not in spec.md (tags, progress bars, checklists, attachments, thumbnails, search, suite nav, collapsible columns, photo avatars, times on cards) \u2014 listed in design.md's appendix as scope questions AWAITING THE USER'S DECISION. Adopting any of them amends spec.md, which is gated. No code was changed by this run."
     },
     "blueprint": {
       "status": "done",
@@ -68,7 +68,9 @@
     "NOTE: `prisma` CLI npm 'latest' is 8.0.0-rc.12 \u2014 both prisma packages are pinned to 7.10.0 in package.json. Do not run `prisma@latest`.",
     "RULE (learned T07, in standards.md + decisions.md): team-scoped reads embed the membership predicate IN THE QUERY. A layout check is never the boundary \u2014 layouts and pages render concurrently.",
     "RULE (learned T07): the proving set is all four of lint, test, test:e2e, build. A lint error was committed past once before this was written down.",
-    "RULE (learned T10): a visual check is its own verification step. Behaviour-only assertions cannot see a font/colour/layout regression \u2014 verify must render and look."
+    "RULE (learned T10): a visual check is its own verification step. Behaviour-only assertions cannot see a font/colour/layout regression \u2014 verify must render and look.",
+    "OPEN (design, 2026-09-04): design.md's appendix lists 10 reference features that are NOT in spec.md \u2014 tags, progress bars, checklists, attachments, thumbnails, search, suite nav, collapsible columns, photo avatars, times on cards. Each needs a scope decision from the user; adopting any amends the gated spec. The board's column caret is drawn decorative-only pending B8.",
+    "OPEN (design, 2026-09-04): design.md now specifies a visual language the CODE does not yet implement (tints, density, card anatomy). Needs a construct slice; T11's due badge should be built against the re-solved --overdue/--due-soon tokens, not the originals."
   ],
   "halt_reason": null
 }
