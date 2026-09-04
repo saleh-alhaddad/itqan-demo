@@ -12,9 +12,8 @@ async function signUpToBoard(page: Page) {
 }
 
 async function addTask(page: Page, column: string, title: string) {
-  await page.getByRole('button', { name: `New task in ${column}` }).or(
-    page.getByTestId('board-column').filter({ hasText: column }).getByRole('button', { name: 'Add a task' }),
-  ).first().click()
+  await page.getByTestId('board-column').filter({ hasText: column })
+    .getByRole('button', { name: `Add a task to ${column}` }).click()
   await page.getByLabel(`New task in ${column}`).fill(title)
   await page.getByLabel(`New task in ${column}`).press('Enter')
   await expect(page.getByTestId('task-card').filter({ hasText: title })).toBeVisible()

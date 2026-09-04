@@ -12,8 +12,10 @@ async function signUpToBoard(page: Page) {
 }
 
 async function addTask(page: Page, column: string, title: string) {
+  // The column header's "+" — its label names the column, so it never collides with the
+  // inline "Add a task" affordance at the foot of the column.
   await page.getByTestId('board-column').filter({ hasText: column })
-    .getByRole('button', { name: 'Add a task' }).click()
+    .getByRole('button', { name: `Add a task to ${column}` }).click()
   await page.getByLabel(`New task in ${column}`).fill(title)
   await page.getByLabel(`New task in ${column}`).press('Enter')
   await expect(page.getByTestId('task-card').filter({ hasText: title })).toBeVisible()

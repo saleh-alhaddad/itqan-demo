@@ -44,3 +44,7 @@ next-env.d.ts
 # --- local db + generated prisma client ---
 /src/generated/
 pgdata/
+
+# python bytecode from the design contrast tool
+__pycache__/
+*.pyc

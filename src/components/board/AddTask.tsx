@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -10,9 +9,18 @@ import { Input } from '@/components/ui/input'
  * the point is to capture a thought without a form in the way; everything else is added
  * afterwards in the detail dialog.
  */
-export function AddTask({ columnId, columnName }: { columnId: string; columnName: string }) {
+export function AddTask({
+  columnId, columnName, open, onOpenChange,
+}: {
+  columnId: string
+  columnName: string
+  /** Controlled by the column, so the header's "+" and this inline affordance open the
+      same field instead of two competing ones. */
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const setOpen = onOpenChange
 
   async function create(title: string) {
     const trimmed = title.trim()

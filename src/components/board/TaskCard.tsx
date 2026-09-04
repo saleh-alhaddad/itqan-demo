@@ -2,23 +2,26 @@
 
 import { useState } from 'react'
 import { Draggable } from '@hello-pangea/dnd'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, MessageSquare } from 'lucide-react'
 import { TaskDialog } from './TaskDialog'
 import { MoveTaskMenu } from './MoveTaskMenu'
+import { AvatarStack } from './AvatarStack'
+import { CountChip } from './CountChip'
 import type { BoardColumn, BoardTask } from './types'
 
 /**
- * A card: the trigger for its detail dialog, a keyboard move menu, and a pointer drag handle.
+ * A card, in three bands (design.md → Card anatomy):
  *
- * The drag handle is a SEPARATE element rather than the whole card. Spreading
- * `dragHandleProps` over the container puts `role="button"` and `tabindex="0"` on it, which
- * would nest the card button and the move menu inside a button — invalid markup, and it
- * makes the inner controls ambiguous to assistive technology. That regression appeared the
- * moment drag was added, on a card that had been clean.
+ *   meta     drag handle + move menu, muted until hover/focus
+ *   title    the card's only saturated element, in the column's tint ink
+ *   footer   assignee avatars left, counts right
  *
- * The handle is therefore pointer-only (`aria-hidden`, not focusable): keyboard and screen
- * reader users move cards through MoveTaskMenu, which is the equal path design.md requires
- * and a better experience than dragging with arrow keys.
+ * The tint arrives as `--tint-surface` / `--tint-ink`, inherited from the column element,
+ * so a card needs no knowledge of which hue it is.
+ *
+ * The drag handle is a separate element rather than the card container: spreading
+ * `dragHandleProps` on the container adds `role="button"` and would nest the card's own
+ * buttons inside a button.
  */
 export function TaskCard({
   task, index, columns, columnName,
@@ -36,41 +39,60 @@ export function TaskCard({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`relative ${snapshot.isDragging ? 'opacity-90 shadow-md' : ''}`}
+          data-tinted
+          data-testid="task-card-shell"
+          className={`group bg-[var(--tint-surface)] relative rounded-lg border border-transparent transition-shadow ${
+            // One depth strategy: flat fills. A shadow appears only while dragging, where it
+            // means "lifted" rather than decoration.
+            snapshot.isDragging ? 'shadow-lg' : ''
+          }`}
         >
+          {/* meta band */}
+          <div className="flex h-6 items-center justify-between px-2 pt-1.5">
+            <span
+              {...provided.dragHandleProps}
+              aria-hidden="true"
+              tabIndex={-1}
+              className="text-tint-muted cursor-grab opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+              data-testid="drag-handle"
+            >
+              <GripVertical className="size-3.5" />
+            </span>
+            <MoveTaskMenu task={task} columns={columns} currentColumnName={columnName} />
+          </div>
+
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="bg-background hover:border-foreground/20 focus-visible:ring-ring w-full rounded-md border p-3 pr-16 pl-7 text-left text-sm shadow-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring w-full rounded-lg px-3.5 pb-3.5 text-left focus-visible:ring-2 focus-visible:outline-none"
             data-testid="task-card"
           >
-            <span className="block font-medium">{task.title}</span>
+            <span
+              className="text-[var(--tint-ink)] block text-sm leading-snug font-medium"
+              data-testid="task-title"
+            >
+              {task.title}
+            </span>
+
+            {task.description ? (
+              <span className="text-tint-muted mt-1 line-clamp-1 block text-xs">
+                {task.description}
+              </span>
+            ) : null}
 
             {task.assignees.length > 0 || task.commentCount > 0 ? (
-              <span className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
-                {task.assignees.length > 0 ? <span>{task.assignees.map((a) => a.name).join(', ')}</span> : null}
+              <span className="mt-3 flex items-center justify-between gap-2">
+                <AvatarStack people={task.assignees} />
                 {task.commentCount > 0 ? (
-                  <span aria-label={`${task.commentCount} comments`}>{task.commentCount} 💬</span>
+                  <CountChip
+                    icon={<MessageSquare className="size-3" />}
+                    count={task.commentCount}
+                    label="comments"
+                  />
                 ) : null}
               </span>
             ) : null}
           </button>
-
-          {/* Pointer-only affordance; the keyboard equivalent is the move menu beside it. */}
-          <span
-            {...provided.dragHandleProps}
-            aria-hidden="true"
-            tabIndex={-1}
-            className="text-muted-foreground absolute top-3 left-1.5 cursor-grab active:cursor-grabbing"
-            data-testid="drag-handle"
-          >
-            <GripVertical className="size-3.5" />
-          </span>
-
-          {/* Outside the card button: a button inside a button is invalid markup. */}
-          <span className="absolute top-2 right-2">
-            <MoveTaskMenu task={task} columns={columns} currentColumnName={columnName} />
-          </span>
 
           <TaskDialog task={task} open={open} onOpenChange={setOpen} />
         </div>

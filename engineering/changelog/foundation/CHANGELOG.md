@@ -183,3 +183,25 @@ in the query, like every other team-scoped read — and a `/boards` page listing
 by team, with an empty state for a user who has none. Board create, rename and delete remain
 T15's. The regression test signs up, logs out, logs back in and asserts no navigation
 returned 404; it was mutation-checked by deleting the page again.
+
+## 2026-09-04 · T10a applied the adopted visual language
+Five-hue accent scale in `globals.css` (light + dark), cycled by column position through
+`lib/tint.ts`. The column sets `--tint-surface` / `--tint-ink` once and cards inherit them,
+so a card carries no knowledge of its hue and moving it between columns re-tints it for free.
+
+Cards are now three bands — meta / title / footer — at the roomier density design.md
+specifies. Assignees render as an initials avatar stack (fixed height at any count) instead
+of a comma-separated list that wrapped at two names. Counts are pills carrying a spelled-out
+label, since a number beside an icon says nothing to a screen reader.
+
+**Contrast is asserted against the painted pixel, in the browser.** design.md's claim was
+computed from token values; the e2e reads what Chromium actually paints and requires ≥4.5:1.
+It caught its own first version — Chromium reports OKLCH as `lab(...)`, so an `rgb()` parser
+read nothing — and was then mutation-checked by lightening an ink token.
+
+`--tint-muted-foreground` replaces `--muted-foreground` on cards: the neutral token measures
+4.21 on these surfaces. Under `forced-colors` the tints drop out entirely, which costs
+nothing because the tint only restates which column a card is already inside.
+
+Nothing from design.md's appendix was built. The column caret was deliberately omitted
+rather than shipped inert, since it belongs to the collapsible-columns scope question.

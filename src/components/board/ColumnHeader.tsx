@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Plus } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -16,7 +16,7 @@ import type { BoardColumn } from './types'
  * `router.refresh()` after a mutation re-runs the server component, so the board state has
  * exactly one source — the server — instead of a client copy that can drift from it.
  */
-export function ColumnHeader({ column }: { column: BoardColumn }) {
+export function ColumnHeader({ column, onAddTask }: { column: BoardColumn; onAddTask?: () => void }) {
   const router = useRouter()
   const [renaming, setRenaming] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -35,7 +35,7 @@ export function ColumnHeader({ column }: { column: BoardColumn }) {
   }
 
   return (
-    <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+    <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-2.5">
       {renaming ? (
         <Input
           autoFocus
@@ -52,8 +52,19 @@ export function ColumnHeader({ column }: { column: BoardColumn }) {
         <h2 className="truncate text-sm font-semibold">{column.name}</h2>
       )}
 
-      <div className="flex shrink-0 items-center gap-1">
-        <span className="text-muted-foreground text-xs tabular-nums">{taskCount}</span>
+      <div className="flex shrink-0 items-center gap-0.5">
+        <span className="text-muted-foreground mr-1 text-xs tabular-nums">{taskCount}</span>
+        {/* The reference puts an add control in the column header. The inline "add a task"
+            at the foot of the column stays too: appending to a long column should not
+            require scrolling back up to the header. */}
+        <button
+          type="button"
+          onClick={onAddTask}
+          aria-label={`Add a task to ${column.name}`}
+          className="hover:bg-background/80 focus-visible:ring-ring rounded p-1 focus-visible:ring-2 focus-visible:outline-none"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </button>
         <DropdownMenu>
           <DropdownMenuTrigger
             className="hover:bg-background/80 rounded p-1"

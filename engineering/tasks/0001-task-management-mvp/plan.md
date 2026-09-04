@@ -1,6 +1,11 @@
 # Plan — 0001 · Task management app (teams, boards, due dates)
 
-Task: 0001-task-management-mvp · Date: 2026-09-04 · Phase: blueprint · Plan v1
+Task: 0001-task-management-mvp · Date: 2026-09-04 · Phase: blueprint · Plan **v2**
+**v2 (2026-09-04):** adds **T10a — apply the visual language**, directed by the user after
+`design.md` was revised from `design-refs/board-reference.png`. Purely visual; adds no
+capability and changes no approved success criterion. It is placed before T11 deliberately:
+T11's due badge must be built against the re-solved `--overdue` / `--due-soon` tokens, which
+were recomputed against five card surfaces instead of one.
 **APPROVED at the gate 2026-09-04** (intake Q18). The two Shape choices left open for the
 gate are now settled in place below: **T03 = DB-backed session table** (Q19) ·
 **T10 = `@hello-pangea/dnd`** (Q20).
@@ -392,6 +397,28 @@ Shape:      `src/app/api/tasks/[taskId]/route.ts`, `src/components/board/MoveTas
             **The build order above stands and is load-bearing**: if this dependency proves
             broken under React 19, dropping it is a `Status` change on one sub-step, not a
             redesign — the board is already fully operable without it.
+Size:       M
+Status:     done
+
+### Task 10a — Apply the adopted visual language
+Goal:       The board looks like `design.md` says it does: tinted cards, coloured titles,
+            the three-band card anatomy, and the roomier density.
+Consumes:   T07–T10 (the board and its components), `design.md` (revised 2026-09-04).
+Produces:   The tint token scale in `globals.css`; `tintFor(position)`; restyled
+            `TaskCard` / `ColumnView` / `ColumnHeader`; an avatar stack; count chips.
+Acceptance: 1. `tintFor` is deterministic and cycles by column position — the same column
+               is the same hue on every render, and a sixth column reuses the first hue.
+            2. Cards render their column's tint; a card's title uses that tint's ink.
+            3. **Rendered contrast is asserted in the browser**, not just in the design doc:
+               an e2e reads the computed title/surface colours and requires ≥ 4.5:1.
+            4. Meta text on a tinted card uses `--tint-muted-foreground`, never
+               `--muted-foreground` (which measures 4.21 on these surfaces).
+            5. Under `forced-colors`, tints drop out and cards fall back to a bordered
+               surface — the tint is redundant encoding, so nothing is lost.
+Shape:      `src/app/globals.css` (tokens, light + dark), `src/lib/tint.ts`,
+            `src/components/board/{TaskCard,ColumnView,ColumnHeader,AvatarStack,CountChip}.tsx`.
+            Tint reaches a card as two CSS custom properties set on the column element, so
+            the card is styled by inheritance rather than by five conditional class sets.
 Size:       M
 Status:     done
 

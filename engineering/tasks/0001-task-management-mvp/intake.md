@@ -395,3 +395,33 @@ Guard:     `e2e/login.spec.ts` signs up, logs OUT, logs back in, and asserts no 
            returned 404. Mutation-checked by deleting the page again, which turns it red.
 Lesson worth keeping: coverage counted in assertions hid a missing journey. Ask which
            *entry points* a real user has — signup and login are two, and only one was tested.
+
+### R14 · construct · 2026-09-04 · PLAN AMENDMENT v2 — T10a added (user-directed)
+Situation: `design.md` was revised from a supplied reference and now specifies a visual
+           language the code does not implement. The user directed: "implement the adopted
+           visual language from design.md, then continue with T11."
+Amendment: added **T10a — Apply the adopted visual language** before T11. Purely visual: it
+           adds no capability and changes no success criterion, so no spec change is implied.
+           Placed BEFORE T11 because T11's badge must use the re-solved `--overdue` /
+           `--due-soon` tokens (recomputed against five card surfaces, not one).
+Approval:  the user's instruction is the approval for this amendment; recorded here so the
+           deviation from plan v1 is auditable rather than silent.
+Not in it: every item in design.md's appendix (tags, progress bars, checklists, attachments,
+           thumbnails, search, suite nav, collapsible columns, photo avatars, times). Those
+           are features and remain open scope questions.
+
+### R15 · construct/T10a · 2026-09-04 · NOTES FROM APPLYING THE VISUAL LANGUAGE
+1. **The rendered-contrast test failed for a test-side reason.** Chromium reports
+   OKLCH-derived colours as `lab(...)`, so an `rgb()` parser read nothing and the failure
+   looked like a contrast bug. It now paints each colour into a 1×1 canvas and samples the
+   pixel — which works for any colour syntax and measures what is actually on screen rather
+   than what the stylesheet said. Mutation-checked: lightening one ink token turns it red.
+2. **Adding the header "+" broke six existing e2e tests.** Its label ("Add a task to To Do")
+   contains the inline affordance's label ("Add a task"), so every helper using the shorter
+   name hit a strict-mode violation. Behaviour was fine; the selectors were ambiguous. All
+   helpers now use the header control, whose label names its column and cannot collide.
+3. **The move control is deliberately NOT hover-revealed**, unlike the drag handle. Hiding
+   the keyboard-equal path behind hover would make it discoverable only with a pointer,
+   which defeats the reason it exists.
+4. The column caret from design.md's anatomy sketch was **not built** — it belongs to B8
+   (collapsible columns), an open scope question. Shipping it inert would be a dead control.
