@@ -18,7 +18,7 @@ const assigneesSchema = z.object({ userIds: z.array(z.string()).max(50) })
  * for, and would make the failure look partly successful.
  */
 export async function PUT(request: Request, ctx: { params: Promise<{ taskId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { taskId } = await ctx.params
     const actor = await requireUser()
     // Establishes access AND gives us the ownership chain without a second query.

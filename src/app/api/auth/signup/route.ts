@@ -4,7 +4,7 @@ import { requiredText } from '@/lib/api/validation'
 import { PrismaClientKnownRequestError } from '@/generated/prisma/internal/prismaNamespace'
 import { provisionNewAccount } from '@/lib/provisioning'
 import { createSession, buildSessionCookie } from '@/lib/auth/session'
-import { apiError } from '@/lib/api/errors'
+import { apiError, assertSameOrigin, ApiError } from '@/lib/api/errors'
 import { bucketsFor, checkThrottle, clientIp, recordFailure } from '@/lib/auth/throttle'
 
 /**
@@ -19,6 +19,12 @@ export const signupSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  // harden M2. These do not go through handleErrors, so the check is explicit here.
+  try { assertSameOrigin(request) } catch (err) {
+    if (err instanceof ApiError) return apiError(err.code, err.status, err.message)
+    throw err
+  }
+
   const parsed = signupSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
     return apiError('INVALID_INPUT', 400, 'Check the email, password and name and try again.')

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireUserOrRedirect } from '@/lib/auth/guard'
 import { listBoardsFor } from '@/lib/boards'
 import { CreateBoard } from '@/components/board/CreateBoard'
+import { AccountMenu } from '@/components/AccountMenu'
 
 /**
  * Where a returning user lands after logging in.
@@ -21,7 +22,10 @@ export default async function BoardsPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl p-6">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Your boards</h1>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Your boards</h1>
+        <AccountMenu name={user.name} />
+      </div>
 
       {!hasAnyBoard ? (
         // Reachable once board deletion exists (T15), and reachable today for anyone

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { destroySession, clearedSessionCookie, SESSION_COOKIE_NAME } from '@/lib/auth/session'
+import { apiError, assertSameOrigin, ApiError } from '@/lib/api/errors'
+import { destroySession, destroyAllSessionsFor, readSession, clearedSessionCookie, SESSION_COOKIE_NAME } from '@/lib/auth/session'
 
 /**
  * Logout deletes the session ROW and then clears the cookie (Q19).
@@ -8,8 +9,26 @@ import { destroySession, clearedSessionCookie, SESSION_COOKIE_NAME } from '@/lib
  * copy taken beforehand would keep working. Deleting the row is what makes this revocation.
  */
 export async function POST(request: Request) {
+  try { assertSameOrigin(request) } catch (err) {
+    if (err instanceof ApiError) return apiError(err.code, err.status, err.message)
+    throw err
+  }
+
   const token = readCookie(request.headers.get('cookie'), SESSION_COOKIE_NAME)
-  if (token) await destroySession(token)
+
+  // `{ everywhere: true }` signs the user out of every device (harden M4). It is the only
+  // recovery available if they believe a session was stolen — there is no password reset.
+  const body = (await request.json().catch(() => null)) as { everywhere?: boolean } | null
+
+  if (token) {
+    if (body?.everywhere) {
+      const session = await readSession(token)
+      if (session) await destroyAllSessionsFor(session.userId)
+      else await destroySession(token)
+    } else {
+      await destroySession(token)
+    }
+  }
 
   const res = NextResponse.json({ ok: true })
   res.cookies.set(clearedSessionCookie())

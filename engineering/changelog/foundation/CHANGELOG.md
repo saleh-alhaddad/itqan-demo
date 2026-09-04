@@ -264,3 +264,22 @@ the shadcn CLI as a runtime dependency, and sessions with no absolute lifetime.
 awaiting, so dismissing it left a PATCH in flight that a navigation could cancel — losing the
 edit, and contradicting the file's own comment. It had been producing a wandering end-to-end
 flake, a different test each run. Closing now waits for in-flight saves.
+
+### 2026-09-04 · harden second pass — all four Mediums closed
+- **M1** Six security headers plus a CSP. The CSP is honest about its limit: it keeps
+  `'unsafe-inline'` for script, because Next injects inline bootstrap and the strict
+  alternative is a per-request nonce needing middleware this app does not have. It stops
+  cross-origin script loading, exfiltration, framing and base-URI rewriting; it does not stop
+  inline injection. Proven not to break the app by the console-clean gate.
+- **M2** Cross-origin mutations are refused, and the check is **structural**: `handleErrors`
+  now takes the request as a required argument, so a new route cannot compile without passing
+  it, and a test fails if any mutating handler is covered by neither the wrapper nor an
+  explicit call.
+- **M3** The `shadcn` CLI moved to devDependencies. `cn` stays — it is genuinely imported.
+- **M4** A 90-day absolute session cap alongside the 30-day rolling one, measured from
+  creation and never refreshed, plus sign-out-everywhere.
+
+**M4 uncovered a gap nobody had listed: there was no way to sign out at all.** The logout
+endpoint existed and no UI called it. There is now an account menu on both authenticated
+surfaces — and with no password reset in this MVP, revoking every session is the only
+recovery a person has if they think a cookie was stolen.

@@ -193,10 +193,41 @@ while list-probing is refused. This is option (a)+(c) from the original finding.
 `GET /` now `307`s to the app instead of serving create-next-app's starter page;
 `X-Powered-By` is gone; `.env.example` carries placeholders instead of a working password.
 
-### Still open — the four Mediums
-M1 (no security headers), M2 (CSRF is SameSite-only), M3 (`shadcn` CLI as a runtime
-dependency), M4 (no absolute session lifetime). None blocks ship by severity — each is a
-missing layer behind a control that currently works — but none is fixed either.
+### The four Mediums — RESOLVED in a second pass · 2026-09-04
+
+- **M1 — headers.** All six now served and verified on the wire, `X-Powered-By` gone.
+  The CSP is honest about its limit: `script-src` keeps `'unsafe-inline'` because Next
+  injects inline bootstrap scripts and the strict alternative is a per-request nonce, which
+  needs middleware this app does not have. So it does **not** stop inline injection; it does
+  stop loading script from another origin, exfiltrating to one, framing, and base-URI
+  rewriting. The upgrade path is written in `next.config.ts`.
+  **The CSP was proven not to break the app** — the console-clean gate still reports zero
+  errors *and* zero warnings across the whole core flow, which is the check that matters
+  when adding a policy.
+- **M2 — cross-origin mutations refused.** `POST /api/auth/login` with
+  `Origin: https://evil.example` → **403 `CROSS_ORIGIN`**; the same request with no Origin
+  (curl, a server-side caller, the test suite) → 401, i.e. unaffected.
+  Made **structural**, not remembered: `handleErrors` now takes the request as a required
+  argument, so the 13 routes that already funnel through it are covered by construction and
+  a new route cannot compile without passing it. The three auth routes call the check
+  explicitly, and a test enumerates the route files and fails if any mutating handler is
+  covered by neither — the same enforcement idea as the SC5 matrix.
+- **M3 — `shadcn` moved to devDependencies.** `cn` correctly stays a runtime dependency; it
+  is genuinely imported.
+- **M4 — absolute session lifetime + revocation.** A 90-day cap measured from creation and
+  never refreshed now sits alongside the 30-day rolling window, so no credential outlives it
+  however actively it is used. "Sign out everywhere" deletes every `Session` row for the
+  user — proven end-to-end by signing out on one browser and finding a second one signed out.
+
+  **This also closed a gap nobody had listed: there was no way to sign out at all.** The
+  logout endpoint existed and no UI called it. There is now an account menu on both
+  authenticated surfaces. With no password reset in this MVP, revoking every session is the
+  only recovery a person has if they think a cookie was stolen.
+
+### Regression check after the second pass
+The 18 adversarial probes: **18/18**. The C1 brute-force probe: **97 of 100 refused**.
+Zero unhandled server errors. Full suite: 202 unit/integration, 67 e2e, three consecutive
+clean runs.
 
 ### Found while re-verifying: an edit could be lost on close
 Not a security finding, but it surfaced here. `TaskDialog` saved fields on blur with nothing
@@ -206,7 +237,11 @@ cancel — silently losing the edit, and contradicting the file's own comment th
 producing a wandering e2e flake (a different test each run); four consecutive full-suite runs
 are clean.
 
-## Verdict after re-audit
+## Verdict after both passes
 
-**0 Critical, 0 High, 4 Medium, 0 Info.** Nothing blocks release on severity. The four
-Mediums remain open and are listed above.
+**0 Critical, 0 High, 0 Medium, 0 Info — every finding in this review is closed.**
+
+One limitation is recorded rather than fixed, deliberately: the CSP permits inline script
+(`'unsafe-inline'`), so it is not XSS-proof. Tightening it to a nonce needs a middleware
+layer the app does not currently have. That is a known, documented boundary, not an
+oversight.

@@ -46,7 +46,7 @@
       "validated": true,
       "approved": true,
       "artifact": "security-review.md",
-      "note": "Audit + fixes + re-audit complete. At audit: 1 Critical, 1 High, 4 Medium, 4 Info. After fixes: 0 Critical, 0 High, 4 Medium open, 0 Info. approved:true because nothing blocks release on severity. C1 (no login throttle) FIXED and re-proven with the SAME probe: 96 of 100 attempts now 429, only 4 password checks performed, and the cooldown is proven to ELAPSE (correct password 429 during, 200 after) so it is not a lockout DoS. H1 mitigated by throttling signup while keeping the usable message. I1/I2/I3 fixed. OPEN: M1 no security headers, M2 CSRF is SameSite-only, M3 shadcn CLI is a runtime dependency, M4 no absolute session lifetime \u2014 user chose not to fix these now; each is a missing layer behind a working control. Also fixed while re-verifying: TaskDialog could lose an edit on close (in-flight PATCH cancelled by navigation), which had been producing a wandering e2e flake \u2014 4 consecutive clean full runs."
+      "note": "Audit + two fix passes + re-audit. At audit: 1 Critical, 1 High, 4 Medium, 4 Info. NOW ALL CLOSED: 0/0/0/0. Pass 1 fixed C1 (login throttle \u2014 96-97 of 100 attempts refused, cooldown proven to elapse so it is not a lockout DoS), H1 (signup throttled, message kept), I1/I2/I3. Pass 2 fixed all four Mediums: M1 six security headers + CSP (console-clean gate proves it does not break the app; CSP keeps unsafe-inline for script, documented, nonce needs middleware); M2 Origin check made STRUCTURAL \u2014 handleErrors now takes the request as a required argument so a new route cannot compile without it, plus a completeness test over the route files; M3 shadcn moved to devDependencies; M4 90-day absolute session cap never refreshed, plus sign-out-everywhere. M4 also closed an unlisted gap: there was NO way to sign out at all \u2014 endpoint existed, no UI. Regression: 18/18 adversarial probes, 202 unit/integration, 67 e2e over three consecutive runs."
     },
     "inspect": {
       "status": "todo",
@@ -61,11 +61,11 @@
     }
   },
   "open_items_for_resume": [
-    "NEXT PHASE: inspect, then release (GO/NO-GO gate). harden is approved \u2014 nothing blocks on severity.",
-    "OPEN from harden, deferred by the user (non-blocking Mediums): M1 no security headers (CSP, X-Frame-Options, nosniff, Referrer-Policy, HSTS); M2 CSRF defence is SameSite=Lax alone, no Origin check; M3 the shadcn CLI (33 deps) is a runtime dependency and should move to devDependencies; M4 sessions refresh forever with no absolute cap and no sign-out-everywhere.",
-    "FINDING (verify): no schema rollback path \u2014 now TWO migrations exist, so this matters from here on.",
-    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms). Measured.",
-    "KNOWN MVP RISK, ACCEPTED: no password reset. Note it compounds C1 \u2014 a stolen account is unrecoverable by its owner."
+    "NEXT PHASE: inspect, then release (GO/NO-GO gate). harden is fully closed \u2014 0 findings at any severity.",
+    "DOCUMENTED LIMITATION (not a finding): the CSP permits inline script, so it is not XSS-proof. Tightening to a per-request nonce needs a middleware layer this app does not have. Recorded in next.config.ts.",
+    "FINDING (verify): no schema rollback path \u2014 three migrations now exist, so this matters from here on.",
+    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms). Measured, within tolerance.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset. Sign-out-everywhere is now the only self-service recovery for a suspected stolen session."
   ],
   "halt_reason": null
 }

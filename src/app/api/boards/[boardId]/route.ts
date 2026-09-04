@@ -9,8 +9,8 @@ import { loadBoardFor } from '@/lib/boards'
 /** The endpoint the 10-second poll re-fetches (SC10). Never cached. */
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request: Request, ctx: { params: Promise<{ boardId: string }> }) {
-  return handleErrors(async () => {
+export async function GET(request: Request, ctx: { params: Promise<{ boardId: string }> }) {
+  return handleErrors(request, async () => {
     // Next 16: params is a Promise. Reading it without awaiting compiles cleanly and is broken.
     const { boardId } = await ctx.params
     const user = await requireUser()
@@ -28,7 +28,7 @@ const patchBoardSchema = z.object({ name: requiredText(100) })
 
 /** Rename. Any member of the board's team — renaming is not a destructive act. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ boardId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { boardId } = await ctx.params
     const user = await requireUser()
     await requireBoardAccess(user.id, boardId)
@@ -49,8 +49,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ boardId: 
  * can state what the cascade destroys. A cascade the user cannot see is the one that
  * surprises them (I7).
  */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ boardId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ boardId: string }> }) {
+  return handleErrors(request, async () => {
     const { boardId } = await ctx.params
     const user = await requireUser()
 

@@ -6,6 +6,16 @@ export const SESSION_COOKIE_NAME = 'itqan_session'
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 /**
+ * The absolute cap, measured from creation and NEVER refreshed (harden M4).
+ *
+ * The rolling window alone meant a session that was merely used stayed valid forever, so a
+ * stolen cookie never expired on its own and its owner had no way to revoke it — there is no
+ * password reset either. This puts a ceiling on how long any single credential can live,
+ * however active it is.
+ */
+export const SESSION_ABSOLUTE_MAX_MS = 90 * 24 * 60 * 60 * 1000
+
+/**
  * Server-side sessions (gate decision Q19).
  *
  * The cookie carries only an opaque random token; everything else lives in the Session
@@ -34,7 +44,13 @@ export async function readSession(token: string, now = new Date()) {
   const session = await prisma.session.findUnique({ where: { token }, include: { user: true } })
   if (!session) return null
 
-  if (session.expiresAt <= now) {
+  // Two independent limits. The rolling one keeps an active user signed in; the absolute one
+  // is measured from creation and cannot be pushed out by using the session, so no credential
+  // outlives it (M4).
+  const rollingExpired = session.expiresAt <= now
+  const absoluteExpired = now.getTime() - session.createdAt.getTime() >= SESSION_ABSOLUTE_MAX_MS
+
+  if (rollingExpired || absoluteExpired) {
     await prisma.session.delete({ where: { token } }).catch(() => {})
     return null
   }
@@ -44,9 +60,21 @@ export async function readSession(token: string, now = new Date()) {
   return { ...session, expiresAt }
 }
 
-/** Deletes the row: the session is revoked everywhere, not just in this browser. */
+/** Deletes the row: this session is revoked, not merely cleared from this browser. */
 export async function destroySession(token: string) {
   await prisma.session.deleteMany({ where: { token } })
+}
+
+/**
+ * Signs a user out of every device (harden M4).
+ *
+ * The payoff for having chosen DB-backed sessions over a sealed cookie: with a stateless
+ * cookie this would be impossible without rotating a signing key for everyone at once. It is
+ * the only recovery a user has if they believe a session was stolen, since the MVP ships no
+ * password reset.
+ */
+export async function destroyAllSessionsFor(userId: string) {
+  await prisma.session.deleteMany({ where: { userId } })
 }
 
 /**

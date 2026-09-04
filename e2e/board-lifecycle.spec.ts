@@ -30,7 +30,7 @@ test('a member creates a board and lands on it with its default columns', async 
 
 test('a board can be renamed, and the list reflects it', async ({ page }) => {
   await signUp(page, 'Renamer')
-  await page.getByRole('button', { name: 'Rename' }).click()
+  await page.getByRole('button', { name: 'Rename', exact: true }).click()
   await page.getByLabel('Board name').fill('Renamed board')
   await page.getByLabel('Board name').press('Enter')
   await expect(page.getByRole('heading', { name: 'Renamed board' })).toBeVisible()
@@ -75,7 +75,7 @@ test('a plain member sees no delete control for a board (SC6)', async ({ browser
   await memberPage.goto(owner.boardUrl)
   await expect(memberPage.getByTestId('board-view')).toBeVisible()
   // Rename is a member action; delete is not.
-  await expect(memberPage.getByRole('button', { name: 'Rename' })).toHaveCount(1)
+  await expect(memberPage.getByRole('button', { name: 'Rename', exact: true })).toHaveCount(1)
   await expect(memberPage.getByRole('button', { name: 'Delete board' })).toHaveCount(0)
 
   await ownerCtx.close(); await memberCtx.close()

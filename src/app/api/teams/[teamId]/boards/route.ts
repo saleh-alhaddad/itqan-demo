@@ -16,7 +16,7 @@ const createBoardSchema = z.object({ name: requiredText(100) })
  * that drifts, and the drift would be invisible until someone compared two boards.
  */
 export async function POST(request: Request, ctx: { params: Promise<{ teamId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { teamId } = await ctx.params
     const actor = await requireUser()
     await requireTeamMember(actor.id, teamId)

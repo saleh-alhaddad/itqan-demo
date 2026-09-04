@@ -162,3 +162,36 @@ Consequence:  A determined attacker can still confirm a handful of addresses slo
 Status:       accepted
 Revisit when: an email provider is added — that unlocks the standard fix for this, password
               reset, and true invitations together.
+
+## Sessions have an absolute cap as well as a rolling one · 2026-09-04
+Decision:     A session expires 30 days after its last use (rolling) OR 90 days after it was
+              created (absolute, never refreshed), whichever comes first. "Sign out
+              everywhere" deletes every Session row for the user.
+Why:          The rolling window alone meant a session that was merely used stayed valid
+              forever, so a stolen cookie never expired on its own — and with no password
+              reset in this MVP, its owner had no way to revoke it either. The absolute cap
+              puts a ceiling on how long any single credential can live regardless of
+              activity, and sign-out-everywhere gives the owner a recovery path.
+              This is the payoff for having chosen DB-backed sessions over a sealed cookie
+              (Q19): with a stateless cookie, revoking one user's sessions would mean
+              rotating a signing key for everybody.
+Also fixed:   There was no way to sign out at all — the endpoint existed and no UI called it.
+Status:       accepted
+
+## The cross-origin check is structural, not remembered · 2026-09-04
+Decision:     `handleErrors` takes the Request as a REQUIRED argument and performs the
+              same-origin check for every non-GET. The three auth routes, which do not use
+              the wrapper, call `assertSameOrigin` explicitly, and a test enumerates the
+              route files and fails if a mutating handler is covered by neither.
+Why:          SameSite=Lax already stops the browser attaching the session cookie to a
+              cross-site POST, so this is a second layer. It matters because SameSite is a
+              single point of failure: changing the cookie to SameSite=None for an embed or
+              an integration would open every mutation at once, silently.
+              Making the request a required argument is the same idea as guards that return
+              the resource — a new route cannot compile without passing it, so the check
+              cannot be forgotten rather than merely being documented.
+Deliberate:   A request with neither Origin nor Referer is ALLOWED. Browsers always send
+              Origin on cross-origin state-changing requests, so refusing header-less
+              requests would break curl, server-side callers and the test suite without
+              stopping the attack.
+Status:       accepted

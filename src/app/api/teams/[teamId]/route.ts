@@ -9,7 +9,7 @@ const patchTeamSchema = z.object({ name: requiredText(100) })
 
 /** Rename. Owner only — `requireTeamOwner` refuses a plain member with the shared 404. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { teamId } = await ctx.params
     const user = await requireUser()
     await requireTeamOwner(user.id, teamId)
@@ -24,8 +24,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: s
 }
 
 /** Delete. Cascades to boards → columns → tasks → assignments and comments (I7). */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ teamId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ teamId: string }> }) {
+  return handleErrors(request, async () => {
     const { teamId } = await ctx.params
     const user = await requireUser()
     await requireTeamOwner(user.id, teamId)

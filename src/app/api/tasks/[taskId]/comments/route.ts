@@ -15,8 +15,8 @@ const commentSchema = z.object({ body: requiredText(5000) })
  * ten seconds and shipping every comment with it would grow that response without bound.
  * The board carries counts; the dialog fetches the text.
  */
-export async function GET(_request: Request, ctx: { params: Promise<{ taskId: string }> }) {
-  return handleErrors(async () => {
+export async function GET(request: Request, ctx: { params: Promise<{ taskId: string }> }) {
+  return handleErrors(request, async () => {
     const { taskId } = await ctx.params
     const actor = await requireUser()
     await requireTaskAccess(actor.id, taskId)
@@ -36,7 +36,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ taskId: st
 }
 
 export async function POST(request: Request, ctx: { params: Promise<{ taskId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { taskId } = await ctx.params
     const actor = await requireUser()
     await requireTaskAccess(actor.id, taskId)

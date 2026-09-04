@@ -12,7 +12,7 @@ const patchColumnSchema = z
 
 /** Rename and/or move. Both are ordinary member actions; only board deletion is owner-only. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ columnId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { columnId } = await ctx.params
     const user = await requireUser()
     const column = await requireColumnAccess(user.id, columnId)
@@ -39,8 +39,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ columnId:
  * user saw has to be able to say how many tasks it is about to destroy — a cascade the user
  * cannot see is the one that surprises them (I7). Hard delete, no undo.
  */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ columnId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ columnId: string }> }) {
+  return handleErrors(request, async () => {
     const { columnId } = await ctx.params
     const user = await requireUser()
     const column = await requireColumnAccess(user.id, columnId)

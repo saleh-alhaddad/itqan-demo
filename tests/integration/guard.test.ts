@@ -34,7 +34,7 @@ describe('T06 — requireBoardAccess (I2)', () => {
     const outsider = await makeUser()
 
     const respond = (id: string) =>
-      handleErrors(async () => {
+      handleErrors(new Request('http://localhost/x'), async () => {
         await requireBoardAccess(outsider.id, id)
         return new Response('unreachable')
       })

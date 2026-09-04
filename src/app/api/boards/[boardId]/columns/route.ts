@@ -10,7 +10,7 @@ const createColumnSchema = z.object({ name: requiredText(100) })
 
 /** Any member of the board's team may add a column. */
 export async function POST(request: Request, ctx: { params: Promise<{ boardId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { boardId } = await ctx.params
     const user = await requireUser()
     // Throws the shared 404 for a non-member and an absent board alike (I2).

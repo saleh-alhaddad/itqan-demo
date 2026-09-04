@@ -3,12 +3,18 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { verifyPassword } from '@/lib/auth/password'
 import { createSession, buildSessionCookie } from '@/lib/auth/session'
-import { apiError } from '@/lib/api/errors'
+import { apiError, assertSameOrigin, ApiError } from '@/lib/api/errors'
 import { bucketsFor, checkThrottle, clientIp, recordFailure, recordSuccess } from '@/lib/auth/throttle'
 
 const loginSchema = z.object({ email: z.string().max(254), password: z.string().max(200) })
 
 export async function POST(request: Request) {
+  // harden M2. These do not go through handleErrors, so the check is explicit here.
+  try { assertSameOrigin(request) } catch (err) {
+    if (err instanceof ApiError) return apiError(err.code, err.status, err.message)
+    throw err
+  }
+
   const parsed = loginSchema.safeParse(await request.json().catch(() => null))
   // Even malformed input gets the generic credential failure: a distinct validation error
   // here would let a prober tell "this address is shaped like an account" from "it isn't".

@@ -27,7 +27,7 @@ class LastOwnerError extends Error {}
 
 /** Change a member's role. Owner only. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: string; userId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { teamId, userId } = await ctx.params
     const actor = await requireUser()
     await requireTeamOwner(actor.id, teamId)
@@ -62,8 +62,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: s
  * invariant rather than a tendency. The tasks themselves survive — losing a person must not
  * lose the work (SC9).
  */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ teamId: string; userId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ teamId: string; userId: string }> }) {
+  return handleErrors(request, async () => {
     const { teamId, userId } = await ctx.params
     const actor = await requireUser()
     await requireTeamOwner(actor.id, teamId)

@@ -20,7 +20,7 @@ const patchTaskSchema = z.object({
 })
 
 export async function PATCH(request: Request, ctx: { params: Promise<{ taskId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { taskId } = await ctx.params
     const user = await requireUser()
     const task = await requireTaskAccess(user.id, taskId)
@@ -61,8 +61,8 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ taskId: s
 }
 
 /** SC6: ANY member of the board's team may delete a task — this is not an owner-only action. */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ taskId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ taskId: string }> }) {
+  return handleErrors(request, async () => {
     const { taskId } = await ctx.params
     const user = await requireUser()
     const task = await requireTaskAccess(user.id, taskId)

@@ -7,6 +7,11 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Security headers: Set in `next.config.ts` `headers()`. The CSP keeps `'unsafe-inline'` for
+                 script because Next injects inline bootstrap; it is NOT XSS-proof, and the
+                 nonce upgrade needs middleware. Adding or tightening a CSP must be proven
+                 against the console-clean gate, which is what shows it has not broken the
+                 app.  · learned in harden · 2026-09-04
 Auth throttling: Login and signup are throttled by a DB-backed cooldown in
                  `lib/auth/throttle.ts`, counted against email AND IP. Never add a hard
                  account lockout — it is a DoS against the real owner. See decisions.md.

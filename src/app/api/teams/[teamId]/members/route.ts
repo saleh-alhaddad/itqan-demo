@@ -18,7 +18,7 @@ const addMemberSchema = z.object({ email: z.email().max(254) })
  * There are no invitations: the MVP sends no email, so a person must already have an account.
  */
 export async function POST(request: Request, ctx: { params: Promise<{ teamId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { teamId } = await ctx.params
     const actor = await requireUser()
     await requireTeamOwner(actor.id, teamId)

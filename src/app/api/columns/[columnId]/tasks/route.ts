@@ -18,7 +18,7 @@ const createTaskSchema = z.object({
 })
 
 export async function POST(request: Request, ctx: { params: Promise<{ columnId: string }> }) {
-  return handleErrors(async () => {
+  return handleErrors(request, async () => {
     const { columnId } = await ctx.params
     const user = await requireUser()
     await requireColumnAccess(user.id, columnId)

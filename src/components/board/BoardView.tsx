@@ -3,6 +3,7 @@ import { AddColumn } from './AddColumn'
 import { DragContext } from './DragContext'
 import { BoardAnnouncer } from './BoardAnnouncer'
 import { BoardActions } from './BoardActions'
+import { AccountMenu } from '@/components/AccountMenu'
 import type { Board } from './types'
 
 /**
@@ -19,7 +20,13 @@ import type { Board } from './types'
  * change nothing on screen. That bug was real here — a created column never appeared — and
  * it would have silently defeated polling in T17 as well.
  */
-export function BoardView({ initialBoard, viewerId }: { initialBoard: Board; viewerId: string }) {
+export function BoardView({
+  initialBoard, viewerId, viewerName,
+}: {
+  initialBoard: Board
+  viewerId: string
+  viewerName: string
+}) {
   const board = initialBoard
 
   return (
@@ -41,12 +48,15 @@ export function BoardView({ initialBoard, viewerId }: { initialBoard: Board; vie
             viewerIsOwner={board.viewerIsOwner}
           />
         </div>
-        <Link
-          href={`/teams/${board.teamId}/settings`}
-          className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline underline-offset-4"
-        >
-          Team settings
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            href={`/teams/${board.teamId}/settings`}
+            className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+          >
+            Team settings
+          </Link>
+          <AccountMenu name={viewerName} />
+        </div>
       </div>
 
       {board.columns.length === 0 ? (

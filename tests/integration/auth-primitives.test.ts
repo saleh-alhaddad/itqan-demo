@@ -2,8 +2,8 @@ import { describe, it, expect, afterAll, vi } from 'vitest'
 import { prisma } from '@/lib/db'
 import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import {
-  createSession, readSession, destroySession, buildSessionCookie, clearedSessionCookie,
-  SESSION_TTL_MS, SESSION_COOKIE_NAME,
+  createSession, readSession, destroySession, destroyAllSessionsFor, buildSessionCookie,
+  clearedSessionCookie, SESSION_TTL_MS, SESSION_ABSOLUTE_MAX_MS, SESSION_COOKIE_NAME,
 } from '@/lib/auth/session'
 import { makeUser } from '../factories'
 
@@ -97,6 +97,56 @@ describe('T03 — session lifecycle (Q19: DB-backed, revocable)', () => {
 
     const after = await prisma.session.findUniqueOrThrow({ where: { token } })
     expect(after.expiresAt.getTime()).toBeGreaterThan(before.expiresAt.getTime())
+  })
+
+  it('harden M4: an ABSOLUTE lifetime caps the rolling window', async () => {
+    // The rolling expiry alone meant an actively used session never expired, so a stolen
+    // cookie stayed valid indefinitely. The absolute cap is measured from creation and is
+    // not refreshed by use.
+    expect(SESSION_ABSOLUTE_MAX_MS).toBeGreaterThan(SESSION_TTL_MS)
+
+    const user = await makeUser()
+    const { token } = await createSession(user.id)
+
+    // Kept alive by use — each read refreshes the 30-day rolling window, which is the only
+    // way a session survives to day 89 at all.
+    const day = 24 * 60 * 60 * 1000
+    for (const d of [20, 40, 60, 80, 89]) {
+      expect(await readSession(token, new Date(Date.now() + d * day)), `day ${d}`).not.toBeNull()
+    }
+
+    // Past it: refused however recently it was used.
+    const past = new Date(Date.now() + SESSION_ABSOLUTE_MAX_MS + 60_000)
+    expect(await readSession(token, past)).toBeNull()
+    expect(await prisma.session.findUnique({ where: { token } })).toBeNull()
+  })
+
+  it('harden M4: refreshing cannot push a session past its absolute cap', async () => {
+    const user = await makeUser()
+    const { token } = await createSession(user.id)
+    // Use it repeatedly, right up to the cap — each read refreshes the rolling window.
+    for (const days of [10, 20, 29, 40, 60, 89]) {
+      await readSession(token, new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+    }
+    // The cap is measured from CREATION, so all that use bought nothing.
+    const past = new Date(Date.now() + SESSION_ABSOLUTE_MAX_MS + 1000)
+    expect(await readSession(token, past)).toBeNull()
+  })
+
+  it('harden M4: sign out EVERYWHERE revokes every session for that user', async () => {
+    const user = await makeUser()
+    const other = await makeUser()
+    const a = await createSession(user.id)
+    const b = await createSession(user.id)
+    const c = await createSession(user.id)
+    const untouched = await createSession(other.id)
+
+    await destroyAllSessionsFor(user.id)
+
+    for (const s of [a, b, c]) expect(await readSession(s.token)).toBeNull()
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0)
+    // Somebody else's sessions are not collateral.
+    expect(await readSession(untouched.token)).not.toBeNull()
   })
 
   it('rejects and deletes a session past its expiry', async () => {

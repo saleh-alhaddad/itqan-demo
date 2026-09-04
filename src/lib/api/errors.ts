@@ -28,6 +28,8 @@ export type ErrorCode =
   | 'WRITE_CONFLICT'
   /** harden C1: too many failed authentication attempts; a cooldown is in force. */
   | 'TOO_MANY_ATTEMPTS'
+  /** harden M2: a state-changing request arrived from another origin. */
+  | 'CROSS_ORIGIN'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {
@@ -51,9 +53,55 @@ export function notFound() {
   return apiError('NOT_FOUND', 404, 'Not found')
 }
 
-/** Wraps a handler so a thrown ApiError becomes its response instead of a 500. */
-export async function handleErrors(fn: () => Promise<Response>): Promise<Response> {
+/**
+ * Rejects a state-changing request that did not come from this site (harden M2).
+ *
+ * SameSite=Lax already stops the browser attaching the session cookie to a cross-site POST,
+ * so this is a second layer rather than the only one. It matters because SameSite is a
+ * single point of failure: change the cookie to `SameSite=None` for an embed or an
+ * integration and every mutation opens at once, silently. This check would still hold.
+ *
+ * GET and HEAD are exempt — they must not change state, and the read routes are already
+ * membership-scoped.
+ *
+ * A request with NO Origin and no Referer is allowed: same-origin non-browser clients (curl,
+ * a server-side call, the test suite) legitimately send neither, and browsers always send
+ * Origin on cross-origin state-changing requests. Refusing header-less requests would break
+ * real callers without stopping the attack this defends against.
+ */
+export function assertSameOrigin(request: Request): void {
+  const method = request.method.toUpperCase()
+  if (method === 'GET' || method === 'HEAD') return
+
+  const origin = request.headers.get('origin')
+  const source = origin ?? request.headers.get('referer')
+  if (!source) return
+
+  const host = request.headers.get('host')
+  let sourceHost: string
   try {
+    sourceHost = new URL(source).host
+  } catch {
+    throw new ApiError('CROSS_ORIGIN', 403, 'This request did not come from this site.')
+  }
+
+  if (host && sourceHost !== host) {
+    throw new ApiError('CROSS_ORIGIN', 403, 'This request did not come from this site.')
+  }
+}
+
+/**
+ * Wraps a handler so a thrown ApiError becomes its response instead of a 500, and runs the
+ * cross-origin check on the way in.
+ *
+ * The request is a REQUIRED argument, deliberately: every mutating route already funnels
+ * through here, so taking the request makes the CSRF check impossible to forget on a new
+ * route rather than something the author has to remember. Same reasoning as the guards that
+ * return the resource.
+ */
+export async function handleErrors(request: Request, fn: () => Promise<Response>): Promise<Response> {
+  try {
+    assertSameOrigin(request)
     return await fn()
   } catch (err) {
     if (err instanceof ApiError) return apiError(err.code, err.status, err.message)

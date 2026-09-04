@@ -15,8 +15,8 @@ import { handleErrors, apiError } from '@/lib/api/errors'
  *  - a member who is neither author nor owner gets 403, because they can already see it.
  *    Pretending it is absent would be a lie they can disprove by looking at the screen.
  */
-export async function DELETE(_request: Request, ctx: { params: Promise<{ commentId: string }> }) {
-  return handleErrors(async () => {
+export async function DELETE(request: Request, ctx: { params: Promise<{ commentId: string }> }) {
+  return handleErrors(request, async () => {
     const { commentId } = await ctx.params
     const actor = await requireUser()
 
