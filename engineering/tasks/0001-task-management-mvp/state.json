@@ -1,13 +1,13 @@
 {
   "task": "0001-task-management-mvp",
-  "title": "Task management app — teams, boards, due dates",
+  "title": "Task management app \u2014 teams, boards, due dates",
   "role": "principal",
   "mode": {
     "agents": "single",
-    "loop": "step",
+    "loop": "loop",
     "commits": "gate"
   },
-  "halt_after": "define",
+  "halt_after": null,
   "phases": {
     "define": {
       "status": "done",
@@ -20,35 +20,40 @@
       "status": "done",
       "validated": true,
       "artifact": "design.md",
-      "note": "UI intake per define Step 1b — no mockups supplied; direction distilled from Q16."
+      "note": "REVISED 2026-09-04 from design-refs/board-reference.png, treated as direction not a pixel target. Adopted (visual only, no new capability): five-hue accent scale cycled BY COLUMN POSITION (no new field; restates I3; stable across reloads), coloured card titles, roomier density (320px columns, 14px card padding), three-band card anatomy, initials avatar stack replacing comma-separated names, pill count chips, flat-fill depth strategy. Contrast COMPUTED not estimated (design-refs/contrast.py, validated black-on-white=21.00): every ink/surface pair 5.00-5.04. Two findings: --muted-foreground drops to 4.21 on tinted cards so a --tint-muted-foreground 0.500 token was added (5.34); and the due-date badges were re-solved against all five tints at once, not one card surface. NOT adopted: 10 items that are FEATURES not in spec.md (tags, progress bars, checklists, attachments, thumbnails, search, suite nav, collapsible columns, photo avatars, times on cards) \u2014 listed in design.md's appendix as scope questions AWAITING THE USER'S DECISION. Adopting any of them amends spec.md, which is gated. No code was changed by this run."
     },
     "blueprint": {
-      "status": "todo",
-      "validated": false,
-      "approved": false,
-      "artifact": null
+      "status": "done",
+      "validated": true,
+      "approved": true,
+      "artifact": "plan.md",
+      "note": "plan.md approved by the user at the gate on 2026-09-04 (intake Q18), after being shown the Step 1b dependency findings and decision D1. Two open Shape choices were settled at the same gate: T03 session storage = DB-backed session table (Q19); T10 drag library = @hello-pangea/dnd (Q20). Both folded into plan.md. Fresh-eyes pass had fixed 3 defects before presentation."
     },
     "construct": {
-      "status": "todo",
-      "validated": false,
-      "artifact": null
+      "status": "done",
+      "validated": true,
+      "artifact": null,
+      "note": "ALL 19 plan slices done (T01-T18 + T10a). Proving set green and re-run at close: lint exit 0 \u00b7 171 unit+integration (also green under UTC, America/Los_Angeles, Asia/Tokyo) \u00b7 57 e2e \u00b7 build exit 0 \u00b7 zero schema drift. All 11 success criteria and all 7 invariants have test references. ~45 mutants introduced across the run; every one killed after correcting three that had not actually applied."
     },
     "verify": {
-      "status": "todo",
-      "validated": false,
-      "artifact": null
+      "status": "done",
+      "validated": true,
+      "artifact": "verify.md",
+      "note": "PASS after finding and fixing 3 defects. Proving set re-run fresh: lint 0 \u00b7 178 unit+integration (green under LA and Tokyo) \u00b7 61 e2e no flakes \u00b7 build 0. Database pack: migration up 0.77s/10 tables; NO down path exists (finding). Prod-shaped volume 480 tasks: polled board query p50 4.4ms, 4 SQL statements, no N+1. Browser gates: zero console errors AND warnings across the core flow, every control named, keyboard completable. 18 adversarial probes: 16/18 first run, 18/18 after fixes, 3 consecutive runs, zero server errors. DEFECTS FIXED: (1) null byte in any text field -> 500 (P2039), fixed with one storable-text rule across 9 routes; (2) concurrent member removal -> 500 (P2025), fixed with idempotent deleteMany; (3) concurrent task moves -> 500 (P2034 write conflict), fixed with a bounded retry \u2014 the most consequential, since concurrent dragging is the core collaborative action. Each root-caused before any fix and pinned with a failing test first."
     },
     "harden": {
-      "status": "todo",
-      "validated": false,
-      "approved": false,
-      "artifact": null,
-      "note": "SCHEDULED, not optional: self-hosted email+password auth is a security-sensitive surface (hashing, session fixation, login brute-force, and the member-lookup enumeration oracle in SC7). Must run before any release."
+      "status": "done",
+      "validated": true,
+      "approved": true,
+      "artifact": "security-review.md",
+      "note": "Audit + two fix passes + re-audit. At audit: 1 Critical, 1 High, 4 Medium, 4 Info. NOW ALL CLOSED: 0/0/0/0. Pass 1 fixed C1 (login throttle \u2014 96-97 of 100 attempts refused, cooldown proven to elapse so it is not a lockout DoS), H1 (signup throttled, message kept), I1/I2/I3. Pass 2 fixed all four Mediums: M1 six security headers + CSP (console-clean gate proves it does not break the app; CSP keeps unsafe-inline for script, documented, nonce needs middleware); M2 Origin check made STRUCTURAL \u2014 handleErrors now takes the request as a required argument so a new route cannot compile without it, plus a completeness test over the route files; M3 shadcn moved to devDependencies; M4 90-day absolute session cap never refreshed, plus sign-out-everywhere. M4 also closed an unlisted gap: there was NO way to sign out at all \u2014 endpoint existed, no UI. Regression: 18/18 adversarial probes, 202 unit/integration, 67 e2e over three consecutive runs."
     },
     "inspect": {
-      "status": "todo",
-      "validated": false,
-      "artifact": null
+      "status": "done",
+      "validated": true,
+      "approved": true,
+      "artifact": "review.md",
+      "note": "Review + one fix round. At review: 3 Critical, 2 High, 2 Suggestions. ALL CLOSED. C1-C3 were one root cause \u2014 position written outside the ordering funnel \u2014 fixed structurally: every ordering write now takes a pg_advisory_xact_lock on its parent inside one transaction (a transaction alone was not enough, since two callers writing different rows never conflict), appendPosition returns max+1 instead of count(), and moveAcross() does reparent + both densifies in ONE transaction per spec.md. Writing the tests found MORE than the review: the create paths had the same defect (five concurrent creates gave [0,0,0,1,2]); both now append through the funnel. Mutation-checked \u2014 removing the lock fails 3 of 7 concurrency tests on every run. H1: all 11 client mutations now go through lib/client/mutate.ts, which surfaces the server message as a toast; 4 e2e prove a refused rename/create/move/sign-out is reported, including that a refused move announces the failure and never the move. H2: comment list bounded to the newest 100 with an explicit olderHidden count. S1/S2 closed too. Proving set: lint 0, 210 unit+integration, 72 e2e, build 0."
     },
     "release": {
       "status": "todo",
@@ -58,9 +63,11 @@
     }
   },
   "open_items_for_resume": [
-    "Git isolation is unresolved: the repo has ZERO commits, so master is an unborn ref and there was nothing to branch from. Establish a baseline commit on a main branch before creating task/0001-task-management-mvp.",
-    "I5 (dense integer ordering) is deferred to blueprint by design — the spec commits to stable explicit ordering, not to an encoding of it.",
-    "No password reset exists. Flagged as the largest MVP product risk, accepted knowingly."
+    "NEXT PHASE: release (GO/NO-GO gate). All quality gates are now closed: verify PASS, harden 0 findings, inspect 0 findings.",
+    "DOCUMENTED LIMITATION (not a finding): the CSP permits inline script, so it is not XSS-proof. Tightening to a per-request nonce needs a middleware layer this app does not have. Recorded in next.config.ts.",
+    "FINDING (verify, still open): no schema rollback path \u2014 Prisma generates no down.sql, and there are now three migrations. release needs a schema rollback plan, not just a code one.",
+    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms, 4 SQL statements). Measured.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset. Sign-out-everywhere is the only self-service recovery."
   ],
-  "halt_reason": "User instruction: stop after the spec gate. Gate passed; run ended cleanly here."
+  "halt_reason": null
 }

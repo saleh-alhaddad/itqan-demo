@@ -72,3 +72,165 @@ Alternatives: Add a provider now (rejected for the MVP — but note it unlocks r
 Status:       accepted
 Known cost:   A forgotten password is unrecoverable. This is the largest product risk in
               the MVP and is recorded as such in the spec — accepted knowingly, not missed.
+
+## Authorization lives in the query, never in a layout · 2026-09-04
+Decision:     Every read of team-scoped data is fetched by a function that takes the ACTOR
+              and embeds the membership predicate in the query itself (`loadBoardFor(userId,
+              boardId)`, and the `require*Access` guards). A route layout may repeat the
+              check, but it is never the boundary.
+Why:          Found the hard way in T07. The board page checked access in
+              `app/(app)/boards/[boardId]/layout.tsx` and then loaded the board unscoped in
+              the page. **Next renders a layout and its page concurrently.** The layout threw
+              `notFound()` and the response carried a correct 404 status — while the page had
+              already queried the board and serialised it into the RSC flight payload. A
+              signed-in stranger received a 404 containing another team's board name, column
+              names, ids, and task titles.
+              The status code was right the whole time. Only an assertion on the response
+              BODY exposed it, which is why `e2e/board.spec.ts` asserts absence of the
+              victim's strings rather than just `status === 404`.
+Alternatives: Layout-level guards (rejected — demonstrably unsound in the App Router, and
+              unsound in a way that looks correct in a browser). Middleware-level guards
+              (rejected for this: the check needs a database lookup, and middleware would
+              duplicate the ownership rules it cannot see).
+Consequence:  A page or handler CANNOT obtain team-scoped data without passing the actor.
+              This is the read-side of the guards-return-the-resource rule: the only way to
+              get the data is through the check, so a new call site cannot forget it.
+Status:       accepted
+Guarded by:   `e2e/board.spec.ts` "a stranger's 404 contains none of the board's data",
+              mutation-checked — reverting the query to unscoped turns it red.
+
+## Transient write conflicts are retried, not surfaced · 2026-09-04
+Decision:     A Prisma P2034 (TransactionWriteConflict) inside the ordering funnel is retried
+              up to 3 times with randomised backoff. Only P2034; every other error propagates.
+Why:          Reordering reads a column's order and rewrites the affected run, so two
+              concurrent reorders on one column overlap and Postgres aborts one. The abort is
+              the database doing its job — it leaves no partial state and the dense-position
+              invariant holds — but it is transient, and it was reaching the client as a 500.
+              Two people dragging cards on the same board simultaneously is precisely what
+              this product is for, which makes it the likeliest concurrent path in the app.
+Alternatives: Return 409 and let the client retry (rejected for a drag: the user sees a card
+              snap back for a reason that is not their problem). Serializable isolation with
+              application-level locking (rejected: far more machinery for a conflict that
+              resolves by simply trying again). Sparse/fractional ordering keys, which avoid
+              the conflict entirely (deferred — that is D1's recorded revisit trigger).
+Bounded:      3 attempts, P2034 only. Retrying a genuine failure would hide it.
+Status:       accepted
+Guarded by:   tests/integration/task-move.test.ts concurrency regressions — verified by
+              disabling the retry, which turns them red in 3 of 4 runs.
+
+## Auth throttling is a cooldown, not a lockout · 2026-09-04
+Decision:     Failed logins push the *next permitted attempt* further out, exponentially
+              (3 free attempts, then 1s/2s/4s… capped at 5 minutes), counted against BOTH the
+              email address and the client IP. Counters live in a database table. No account
+              is ever locked.
+Why:          harden C1 measured ~138 login attempts per second from one client with no
+              throttle and no lockout — credential stuffing with nothing in its way, made
+              worse because there is no password reset, so a stolen account is unrecoverable.
+              A hard lockout would have been the obvious fix and the wrong one: locking an
+              account after N failures hands an attacker a denial-of-service against any user
+              whose address they know. A cooldown costs a person who mistypes their password
+              about a second, and costs an attacker everything.
+              The counters are in Postgres rather than in memory because an in-process counter
+              resets on restart and is not shared between instances — worthless on the
+              serverless hosting the polling decision deliberately kept viable. Same reasoning
+              that put sessions in the database.
+              Both buckets are needed: an email-only counter is escaped by spraying many
+              addresses, an IP-only counter by distributing one address across hosts.
+Fails open:   A database error skips the throttle rather than refusing the request. A control
+              that cannot read its counters must not become an outage of the login page.
+              Narrow and deliberate — the exposure lasts only as long as the database problem.
+Alternatives: Hard lockout after N failures (rejected: DoS on the real owner). CAPTCHA
+              (rejected for the MVP: a third-party dependency, and the spec avoids those).
+              In-memory limiter (rejected: useless across instances and restarts).
+Status:       accepted
+Guarded by:   tests/unit/throttle.test.ts (the policy numbers) and
+              tests/integration/auth-throttle.test.ts (both buckets, the 429, Retry-After,
+              reset-on-success, and that the cooldown is bounded).
+
+## Signup keeps its "already registered" message · 2026-09-04
+Decision:     `POST /api/auth/signup` continues to answer 409 for an existing address. The
+              enumeration this permits is mitigated by throttling the surface, not by removing
+              the message.
+Why:          The alternatives are worse. Returning 201 always and mailing the real owner is
+              the standard fix and is unavailable — the MVP ships no email. Returning a vague
+              error leaves a person who genuinely has an account unable to work out why signup
+              fails, with no password reset to fall back on. Throttling makes probing an
+              address list impractical while a real person on their first attempt still gets a
+              straight answer.
+Consequence:  A determined attacker can still confirm a handful of addresses slowly. Accepted
+              knowingly: the spec already accepts the same trade at SC7 for member lookup.
+Status:       accepted
+Revisit when: an email provider is added — that unlocks the standard fix for this, password
+              reset, and true invitations together.
+
+## Sessions have an absolute cap as well as a rolling one · 2026-09-04
+Decision:     A session expires 30 days after its last use (rolling) OR 90 days after it was
+              created (absolute, never refreshed), whichever comes first. "Sign out
+              everywhere" deletes every Session row for the user.
+Why:          The rolling window alone meant a session that was merely used stayed valid
+              forever, so a stolen cookie never expired on its own — and with no password
+              reset in this MVP, its owner had no way to revoke it either. The absolute cap
+              puts a ceiling on how long any single credential can live regardless of
+              activity, and sign-out-everywhere gives the owner a recovery path.
+              This is the payoff for having chosen DB-backed sessions over a sealed cookie
+              (Q19): with a stateless cookie, revoking one user's sessions would mean
+              rotating a signing key for everybody.
+Also fixed:   There was no way to sign out at all — the endpoint existed and no UI called it.
+Status:       accepted
+
+## The cross-origin check is structural, not remembered · 2026-09-04
+Decision:     `handleErrors` takes the Request as a REQUIRED argument and performs the
+              same-origin check for every non-GET. The three auth routes, which do not use
+              the wrapper, call `assertSameOrigin` explicitly, and a test enumerates the
+              route files and fails if a mutating handler is covered by neither.
+Why:          SameSite=Lax already stops the browser attaching the session cookie to a
+              cross-site POST, so this is a second layer. It matters because SameSite is a
+              single point of failure: changing the cookie to SameSite=None for an embed or
+              an integration would open every mutation at once, silently.
+              Making the request a required argument is the same idea as guards that return
+              the resource — a new route cannot compile without passing it, so the check
+              cannot be forgotten rather than merely being documented.
+Deliberate:   A request with neither Origin nor Referer is ALLOWED. Browsers always send
+              Origin on cross-origin state-changing requests, so refusing header-less
+              requests would break curl, server-side callers and the test suite without
+              stopping the attack.
+Status:       accepted
+
+## Ordering is serialised with a per-parent advisory lock · 2026-09-04
+Decision:     Every write to `position` happens inside `lib/ordering.ts`, in a transaction
+              that first takes `pg_advisory_xact_lock` on the parent board or column. Two
+              scopes are locked in sorted key order. `appendPosition` returns `max + 1`.
+Why:          D1 chose dense integers with no unique constraint, which puts the entire
+              guarantee in application code — and a review found that premise broken. Three
+              concurrent moves produced positions `[0,0,0]`; five concurrent creates produced
+              `[0,0,0,1,2]`. Two rows sharing a sort key have no defined order, so cards
+              visibly swap between polls.
+              A transaction alone does not fix this. Two callers can both read `max = 4` and
+              both write `5` without ever conflicting, because they touch different rows and
+              nothing serialises them. The advisory lock is what makes ordering work on one
+              parent serial — the actual requirement behind dense integers.
+              Sorted lock order matters: locking in call order lets a move A→B and a
+              simultaneous B→A each hold one lock and wait for the other.
+              `count()` was replaced with `max + 1` because the two agree only while a run is
+              dense, so `count()` collided the instant a gap existed — it returned 3 for a
+              column holding [0,1,3].
+Alternatives: A unique constraint on (parent, position) — rejected by D1, and still rejected:
+              dense shifts collide transiently. Sparse or fractional keys — the recorded
+              revisit trigger for D1, and a larger change than this defect warranted.
+Status:       accepted
+Guarded by:   tests/integration/ordering-concurrency.test.ts — mutation-checked by removing
+              the lock, which fails 3 of 7 on every run.
+
+## Client mutations report their own failure · 2026-09-04
+Decision:     Every client-side state change goes through `lib/client/mutate.ts`, which
+              inspects the response, raises the server's `error.message` as a toast, and
+              returns `ok` so the caller refreshes only on success.
+Why:          Nine of eleven call sites fired a request and called `router.refresh()` without
+              looking at the result, so a refusal repainted the old value and said nothing —
+              the user's edit simply vanished. `design.md` already required the opposite; one
+              component honoured it. Hardening made this materially worse by adding 429 and
+              403 responses that real users will hit.
+Notable:      A refused MOVE announces the failure rather than the move. Announcing a move
+              that did not happen tells a screen-reader user the card is somewhere it is not,
+              which is worse than saying nothing at all.
+Status:       accepted

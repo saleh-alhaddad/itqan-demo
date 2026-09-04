@@ -169,3 +169,326 @@ Answer:   Approved, as written. The two flagged items were presented before the 
 Locks:    define.approved = true. The 16 decisions above are settled and are NOT
           re-litigated by any later phase or resumed run. The next phase is `blueprint`.
           The run halts here per the original instruction: no plan, no code, no commit.
+
+### Q18 · blueprint · 2026-09-04 · APPROVAL GATE
+Question: Do you approve plan.md as the basis for building?
+My guess: (no guess offered — a gate is the user's call, not a default)
+Answer:   Approved, as written. The dependency findings (Prisma RC/stable mismatch, the
+          Prisma 7 + Next 16 + Turbopack bundling break, Next 16's removed synchronous
+          dynamic APIs, three deprecated packages, two stale DnD libraries) and decision D1
+          (dense ordering without a unique constraint) were all presented before the
+          decision. None was overridden.
+Locks:    blueprint.approved = true. The 18 tasks, their order, and their acceptance
+          criteria are settled and are NOT re-litigated by construct. Deviating from the
+          approved shape requires a plan amendment (v2 + re-approval of the changed part),
+          not a ruling. Next phase: `construct`, starting at T01.
+Cadence:  The user was offered "stop for review after each task" as a distinct option and
+          chose "Approved as written" instead, so the run proceeds continuously through the
+          task list (state.json mode.loop moved step → loop). Commit consent is UNCHANGED at
+          `gate`: nothing is committed without the user's explicit approval (§12).
+
+### Q19 · blueprint · 2026-09-04
+Question: T03 — how should sessions be stored: stateless sealed cookie, or a DB-backed
+          session table?
+My guess: DB-backed session table
+Answer:   DB-backed session table
+Locks:    A `Session` model is added to the T02 schema (opaque random token in the cookie,
+          userId FK, expiresAt), and T03 implements create/read/destroy against it with the
+          30-day rolling expiry refreshed on read. Logout deletes the row, so revocation is
+          real rather than client-side only. Consequence carried forward: every
+          authenticated request costs one indexed session lookup — accepted deliberately, in
+          exchange for closing a finding `harden` would otherwise raise on this surface.
+
+### Q20 · blueprint · 2026-09-04
+Question: T10 — which drag-and-drop library, given that both candidates are stale?
+My guess: @hello-pangea/dnd
+Answer:   @hello-pangea/dnd (18.0.1)
+Locks:    The only candidate declaring `react ^19` in its peer range. `@dnd-kit` is not
+          installed. T10's build order is unchanged and remains load-bearing: the explicit
+          keyboard-reachable move control is built and tested FIRST, drag second, so the
+          board is fully operable if this dependency later has to be dropped.
+
+---
+
+### R1 · construct/T01 · 2026-09-04 · RULING (not an amendment)
+Situation: The plan's T01 Shape names `docker-compose.yml` as the database. The Docker
+           daemon is not running on this machine, but Homebrew PostgreSQL 18.1 is live on
+           :5432 and connectable.
+Ruling:    Dev and test point at the local instance (`itqan_dev`, `itqan_test`, role
+           `itqan`). `docker-compose.yml` is still written and committed as the
+           reproducible/CI path, on :5433.
+Why it is a ruling, not an amendment: the approved Shape (a Postgres 18 database reachable
+           by connection string, plus a compose file) is unchanged. Which *instance* a
+           developer points at is a local environment detail the gate did not decide.
+
+### R2 · construct/T01 · 2026-09-04 · RULING
+Situation: Prisma 7.10.0's preinstall prints "Prisma only supports Node.js versions 20.19+,
+           22.12+, 24.0+" on this machine's Node v25.2.1.
+Ruling:    Proceed on Node 25. Verified non-fatal, not assumed: `prisma -v` exits 0 with the
+           query compiler enabled, `migrate dev` applied cleanly, and the production build
+           and both test runners work. The banner is a stale version check that does not
+           recognise 25 as satisfying "24.0+".
+Follow-up: CI should pin Node 24 LTS so the warning does not become noise that hides a real
+           one. Recorded in standards.md.
+
+### R3 · construct/T01 · 2026-09-04 · RULING
+Situation: Port 3000 is occupied on this machine by an unrelated application. An initial
+           verification curl received HTTP 200 **from that other server**, not from ours.
+Ruling:    Playwright's webServer binds :3100 (`E2E_PORT` overridable), and manual probes
+           allocate a free ephemeral port. A suite that silently exercises someone else's
+           app is worse than one that refuses to start.
+Why it matters: this is the exact shape of a false green — the status code was right and the
+           subject was wrong. Verification asserts a value only our server could produce.
+
+### R4 · construct/T01 · 2026-09-04 · RULING — Prisma 7 API discovered at build time
+Situation: Prisma 7 **removed `url` from the datasource block** (error P1012). The
+           connection string now lives in `prisma.config.ts` for Migrate, and reaches the
+           client at runtime through a **driver adapter**.
+Ruling:    Added `@prisma/adapter-pg@7.10.0` + `pg`; `src/lib/db.ts` constructs
+           `new PrismaClient({ adapter: new PrismaPg({ connectionString }) })`. Also added
+           `prisma.config.ts` with an explicit `dotenv/config` import, because v7 no longer
+           loads `.env` implicitly.
+Why it is a ruling: T01's stated Goal — prove the Next 16 → Prisma 7 → Postgres path — is
+           unchanged, and no other task's acceptance moves. This is the surprise T01 was
+           ordered first to find; it cost one dependency instead of a mid-build redesign.
+
+### R5 · construct/T04+T05 · 2026-09-04 · DEFERRED ACCEPTANCE (plan ordering defect)
+Situation: Two approved acceptance criteria cannot be proven when their own task runs,
+           because each needs a page the plan assigns to a LATER task:
+           · T04 #1 — "submit signup; the redirect renders a board with >=1 column" needs
+             the board screen, which is T07.
+           · T05 #3 — "an unauthenticated request to any (app) route redirects to /login"
+             needs an (app) route to exist; the first are T07's board and T15's board list.
+Ruling:    Both are DEFERRED to the task that supplies the missing page, and recorded here
+           rather than silently marked done. Everything provable now HAS been proven:
+           · SC1's database half — user + team + OWNER membership + board + 3 dense columns,
+             asserted directly (T04 tests).
+           · SC2 in full — forcing a failure at column creation leaves zero user rows;
+             mutation-checked by removing the transaction, which turns the test red.
+           · The signed-out redirect exists structurally in `src/app/(app)/layout.tsx`;
+             only its end-to-end proof waits for a page to sit under it.
+Why flagged, not hidden: the fresh-eyes pass checked that each task's Consumes matched a
+           prior Produces, but did not check that each ACCEPTANCE criterion was provable
+           with only the prior tasks' output. That is a gap in the check, worth remembering
+           for the next plan.
+Status:    T07 and T15 must close these. Neither T04 nor T05 is marked fully validated
+           until they do; `verify` re-proves both before release.
+
+### R6 · construct/T04 · 2026-09-04 · RULING
+Situation: T06's Shape names `src/lib/api/errors.ts` as its Produces, but T04's signup route
+           needs a stable error `code` (its acceptance #5) before T06 runs.
+Ruling:    `errors.ts` was written during T04 and T06 built its guards on top, rather than
+           T04 hand-rolling an error shape for T06 to replace.
+Why:       plan.md's invariants section says "One `notFound()`" — a second error shape
+           existing even briefly is the thing that breaks SC5's byte-identity later.
+
+### R5 · UPDATE · 2026-09-04 — both deferred criteria CLOSED in T07
+`e2e/board.spec.ts` now proves both: signup redirects to a board rendering three columns
+with no setup step (T04 #1 / SC1), and a signed-out visit to an `(app)` route lands on
+`/login` (T05 #3). A third e2e also proves SC5 through the browser: a signed-in stranger
+following another person's board URL receives a 404.
+
+### R7 · construct/T07 · 2026-09-04 · DEFECT FOUND BY A PASSING TEST
+Situation: the signed-out-redirect e2e PASSED while the server logged
+           `⨯ Error [ApiError]: Sign in to continue.` on every signed-out visit.
+Cause:     the board page called `requireUser()`, which throws an `ApiError` — the right
+           idiom for a route handler, where a wrapper turns it into a 401. Thrown from a
+           Server Component it escapes as an unhandled error, so an ordinary signed-out
+           visit was logged at error level.
+Fix:       added `requireUserOrRedirect()` for pages; handlers keep `requireUser()`. The
+           layout uses it too, so the redirect lives in one place.
+Worth remembering: the assertion was about the user-visible outcome and the outcome was
+           correct — the defect was only visible in the server log. A green suite is not
+           the same as a clean run.
+
+### R8 · construct/T07 · 2026-09-04 · SECURITY DEFECT FOUND AND FIXED
+Situation: a signed-in stranger requesting another team's board URL received HTTP 404 whose
+           RSC flight payload contained the victim's board name, column names, ids, and a
+           planted task title. Verified with a scripted probe, not inferred.
+Cause:     access was checked in the route's LAYOUT while the PAGE loaded the board
+           unscoped. Next renders layout and page concurrently, so the page's data was
+           serialised into the stream even though the layout threw `notFound()`.
+Fix:       authorization moved INTO the query — `loadBoardFor(userId, boardId)` carries the
+           membership predicate, so a non-member gets null and there is nothing to render.
+           The layout check remains as defence in depth and to set the status before the
+           `loading.tsx` Suspense boundary flushes headers.
+Recorded:  as an ADR in `decisions.md` — it is a rule for every future team-scoped read.
+Two lessons worth keeping:
+  1. **A passing test hid it.** The original e2e asserted `status === 404`, which was true
+     while the body leaked. Assertions on status alone do not cover disclosure.
+  2. **The design requirement caused it.** Adding `loading.tsx` for design.md's skeleton
+     introduced the Suspense boundary that made the page stream; before that, the same code
+     returned a clean 404. A UI requirement silently changed a security-relevant behaviour.
+
+### R9 · construct/T08 · 2026-09-04 · DEFECT — a prop copied into state froze the board
+Situation: adding a column returned 201 and the row existed in Postgres, but the board on
+           screen never changed. Verified by calling the API directly against the running
+           server before touching the UI, which ruled the endpoint out in one step.
+Cause:     `BoardView` did `const [board] = useState(initialBoard)`. `useState` reads its
+           argument only on the FIRST render, so the copy froze at mount — `router.refresh()`
+           re-ran the server component and handed down fresh props that the component then
+           ignored.
+Fix:       render straight from props; `const board = initialBoard`. The speculative
+           `refreshError` state was removed with it — T17 introduces polling state when
+           there is polling to hold.
+Why it mattered beyond this slice: the same freeze would have defeated T17's poll silently.
+           The board would have looked correct and simply never updated.
+Recorded:  as a convention in standards.md.
+
+### R10 · construct/T09 · 2026-09-04 · RULING
+Situation: T09's Shape names `PATCH /api/tasks/:id`, and T10's Shape names the same file for
+           the move. Building the endpoint twice would mean editing it twice.
+Ruling:    the PATCH handler was built once here, INCLUDING `columnId`/`position` handling.
+           T10 still owns the move: its UI (drag plus the equal keyboard path), SC3's
+           reload proof, the a11y announcement, and the optimistic rollback.
+Also:      writing that handler surfaced a security-relevant path with no test — moving a
+           task into a column in ANOTHER team. The destination now goes through
+           `requireColumnAccess`, and a test proves it: mutation-checked by removing the
+           check, which turns it red. Every READ was already boundary-safe; this was the
+           first WRITE that could cross one.
+
+### R11 · construct/T10 · 2026-09-04 · TWO DEFECTS, BOTH CAUSED BY ADDING DRAG
+1. **The move announcement never survived the move.** The `aria-live` region lived inside
+   `MoveTaskMenu`, i.e. inside the card — and moving a card re-parents its React subtree, so
+   the region was destroyed by the action it existed to announce. Fixed with a board-level
+   `BoardAnnouncer` (context + one stable region above everything that moves).
+2. **Drag nested buttons inside a button.** Spreading `dragHandleProps` over the card
+   container adds `role="button"` and `tabindex="0"`, so the card button and the move menu
+   ended up inside a button — invalid markup, ambiguous to assistive technology, and it
+   broke every existing selector. Fixed with a dedicated pointer-only handle
+   (`aria-hidden`, `tabIndex -1`); keyboard users move cards through `MoveTaskMenu`.
+Worth keeping: the plan's build order paid off exactly as intended. The keyboard path was
+   built and proven BEFORE the drag library, so when drag broke the card's markup, the
+   regression was visible immediately against working tests rather than hidden in a board
+   that had never worked any other way.
+Both recorded as conventions in standards.md.
+
+### R12 · construct/T10 · 2026-09-04 · DEFECT ONLY A SCREENSHOT COULD FIND
+Situation: every surface in the app rendered in the browser's default SERIF face. 91
+           integration tests, 23 e2e tests, lint and build were all green.
+Cause:     `src/app/globals.css` contained `--font-sans: var(--font-sans);` — a
+           self-referential custom property, which resolves to nothing. `create-next-app`
+           names its fonts `--font-geist-sans`; `shadcn init` wrote a rule expecting
+           `--font-sans`. Two generators, each internally consistent, disagreeing at the seam.
+Fix:       `--font-sans: var(--font-geist-sans)` (and `--font-heading` likewise). Also
+           replaced the scaffold's leftover "Create Next App" page title.
+Guard:     an e2e now asserts `--font-sans` resolves to a non-empty value and that the body
+           font is not a serif fallback.
+Worth keeping: **no functional assertion can see this class of defect.** Behaviour was
+           correct throughout. Rendering the app and LOOKING at it is a distinct verification
+           step from running its tests, and belongs in `verify`.
+
+### R13 · construct · 2026-09-04 · DEFECT REPORTED BY THE USER — login landed on a 404
+Situation: logging in as a returning user redirected to `/boards`, which had no `page.tsx`.
+           Every successful login landed on a 404. Reported by the user after reproducing it
+           manually in a browser; confirmed here before any change.
+Why 24 e2e tests missed it: **every one of them signed up**, and signup redirects to
+           `/boards/:id`. The login redirect was never exercised by anything. The only login
+           reference in the suite visited the page to assert the absence of a reset link.
+           The suite covered a lot of behaviour and had a whole *user journey* missing.
+Cause:     a plan ordering defect of the same class as R5 — T05 built login and pointed it at
+           `/boards`, a surface T15 owns. Nothing connected the two, so the gap sat open.
+Fix:       built the minimum that makes login correct: `listBoardsFor(userId)` (membership-
+           scoped like every other team-scoped read) and a `/boards` page listing boards
+           grouped by team, with an empty state. **T15 still owns** board create/rename/delete.
+Guard:     `e2e/login.spec.ts` signs up, logs OUT, logs back in, and asserts no navigation
+           returned 404. Mutation-checked by deleting the page again, which turns it red.
+Lesson worth keeping: coverage counted in assertions hid a missing journey. Ask which
+           *entry points* a real user has — signup and login are two, and only one was tested.
+
+### R14 · construct · 2026-09-04 · PLAN AMENDMENT v2 — T10a added (user-directed)
+Situation: `design.md` was revised from a supplied reference and now specifies a visual
+           language the code does not implement. The user directed: "implement the adopted
+           visual language from design.md, then continue with T11."
+Amendment: added **T10a — Apply the adopted visual language** before T11. Purely visual: it
+           adds no capability and changes no success criterion, so no spec change is implied.
+           Placed BEFORE T11 because T11's badge must use the re-solved `--overdue` /
+           `--due-soon` tokens (recomputed against five card surfaces, not one).
+Approval:  the user's instruction is the approval for this amendment; recorded here so the
+           deviation from plan v1 is auditable rather than silent.
+Not in it: every item in design.md's appendix (tags, progress bars, checklists, attachments,
+           thumbnails, search, suite nav, collapsible columns, photo avatars, times). Those
+           are features and remain open scope questions.
+
+### R15 · construct/T10a · 2026-09-04 · NOTES FROM APPLYING THE VISUAL LANGUAGE
+1. **The rendered-contrast test failed for a test-side reason.** Chromium reports
+   OKLCH-derived colours as `lab(...)`, so an `rgb()` parser read nothing and the failure
+   looked like a contrast bug. It now paints each colour into a 1×1 canvas and samples the
+   pixel — which works for any colour syntax and measures what is actually on screen rather
+   than what the stylesheet said. Mutation-checked: lightening one ink token turns it red.
+2. **Adding the header "+" broke six existing e2e tests.** Its label ("Add a task to To Do")
+   contains the inline affordance's label ("Add a task"), so every helper using the shorter
+   name hit a strict-mode violation. Behaviour was fine; the selectors were ambiguous. All
+   helpers now use the header control, whose label names its column and cannot collide.
+3. **The move control is deliberately NOT hover-revealed**, unlike the drag handle. Hiding
+   the keyboard-equal path behind hover would make it discoverable only with a pointer,
+   which defeats the reason it exists.
+4. The column caret from design.md's anatomy sketch was **not built** — it belongs to B8
+   (collapsible columns), an open scope question. Shipping it inert would be a dead control.
+
+### R16 · construct/T11 · 2026-09-04 · THE TEST FOUND A REAL TIMEZONE BUG, THEN WAS ITSELF ONE
+1. **A heuristic in the classifier was wrong.** The first version guessed whether to read a
+   Date's UTC or local calendar fields based on whether it looked like midnight. That
+   classified a task due 23:59 yesterday as "due today" for anyone east of UTC. Replaced with
+   two explicit functions: a DUE date is always read in UTC (a DATE column arrives as UTC
+   midnight, so its UTC fields ARE its calendar day); "today" is always read locally, because
+   today is a fact about where the viewer is.
+2. **Then the test turned out to be timezone-dependent too.** It built `TODAY` from a
+   UTC-midnight instant, which is a different calendar day depending on where it runs — the
+   suite passed in Tokyo and failed 4 cases in Los Angeles. `TODAY` is now built from local
+   fields, and the suite is run under UTC, America/Los_Angeles, Asia/Tokyo and
+   Pacific/Kiritimati (UTC+14). All 111 pass in all four.
+Recorded as a convention in standards.md.
+
+### Q21 · construct · 2026-09-04 · SCOPE DECISION (spec amendment, user-directed)
+Question: the ten features present in the design reference but absent from the spec (B1–B10
+          in design.md's appendix) — adopt any for this version?
+Answer:   **All ten declined for this version.**
+Locks:    `spec.md`'s "Not doing" list gains a **"Declined from the design reference"**
+          subsection covering B1–B10, with two points called out: B10 (times on cards) is a
+          CONTRADICTION of the DATE decision rather than an absence — declining it upholds an
+          existing decision rather than making a new one — and B2 (progress bars) has no
+          honest data source without B3.
+          The spec is a gated artifact; this amendment only NARROWS scope, invalidates no
+          success criterion, and was directed by the user, which is its approval.
+          Consequence: the reference is now closed as a source of scope. A later reader
+          seeing a tag row or a progress bar in it should read this list, not re-open it.
+
+### Q22 · construct · 2026-09-04 · RUN CADENCE
+Question: keep pausing at each slice?
+Answer:   Run T12 through T18 continuously. Stop only at a gate, an unresolvable failure, or a
+          decision that is genuinely the user's. Report once at the end.
+Locks:    `state.json.mode.loop` stays `loop`; commit consent stays `gate` in the ledger but
+          the user's instruction authorises committing each finished slice without pausing —
+          the end-of-run report still shows every change.
+
+### R17 · construct/T12 · 2026-09-04 · A PAGE NOTHING LINKED TO
+The team settings page rendered correctly server-side (200, members listed) while its e2e
+failed. The tests were reaching it by asking the API for a team id — and the reason they had
+to was that **nothing in the UI linked to it**. The page existed and was unreachable: the same
+shape of gap as the login redirect to a missing page (R13), one step earlier.
+Fixed by adding the navigation a user actually needs — "Team settings" from each team on the
+board list and from the board header, plus a "Boards" link back from a board, which was
+otherwise a dead end. The e2e now clicks those links, which proves reachability as a
+side effect of testing the feature.
+Rule already recorded from R13 (count entry points, not assertions) — this is its second
+instance in two days. Extended in standards.md to: a page with no inbound link is unbuilt.
+
+### R18 · harden/second pass · 2026-09-04 · TWO WRONG DIAGNOSES BEFORE THE RIGHT ONE
+The throttle tests failed intermittently (~2 runs in 5). Worth recording because the first
+two attempts to fix it were guesses, and the process exists to prevent exactly that.
+
+1. **Guess one:** "random test IPs collide." Replaced random with a counter — and the
+   failure rate got WORSE (6 of 10). A change that makes things worse is proof the diagnosis
+   was wrong, not a reason to try a third variant.
+2. **Then read the actual failures.** Two named tests, `expected 401 to be 429`. Cause:
+   attempts made DURING a cooldown are refused *without incrementing the counter*, so how
+   many requests it takes to still be inside the window depends on wall-clock speed. The
+   tests asserted a fixed attempt index against time-dependent state. Fixed by looping until
+   the throttle is observed to engage, then asserting immediately.
+3. **A second, separate cause underneath it.** `AuthAttempt` rows persist in the test
+   database between runs, and my counter prefix had only 200 possible values
+   (`Date.now() % 200`), so runs collided and inherited each other's counters. Fixed with a
+   full timestamp plus randomness.
+Verified across twelve consecutive runs alternating America/Los_Angeles and Asia/Tokyo: 0
+failures. Both lessons recorded in standards.md.

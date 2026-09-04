@@ -1,0 +1,30 @@
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
+import { prisma } from '@/lib/db'
+import { requireUser, requireBoardAccess } from '@/lib/auth/guard'
+import { handleErrors, apiError } from '@/lib/api/errors'
+import { appendWithin } from '@/lib/ordering'
+
+const createColumnSchema = z.object({ name: requiredText(100) })
+
+/** Any member of the board's team may add a column. */
+export async function POST(request: Request, ctx: { params: Promise<{ boardId: string }> }) {
+  return handleErrors(request, async () => {
+    const { boardId } = await ctx.params
+    const user = await requireUser()
+    // Throws the shared 404 for a non-member and an absent board alike (I2).
+    await requireBoardAccess(user.id, boardId)
+
+    const parsed = createColumnSchema.safeParse(await request.json().catch(() => null))
+    if (!parsed.success) return apiError('INVALID_INPUT', 400, 'A column needs a name.')
+
+    // Append via the ordering funnel, so "next position" has one definition (I5/D1) and is
+    // computed under the scope lock rather than racing another create.
+    const column = await appendWithin(prisma, 'column', { boardId }, (position, tx) =>
+      tx.column.create({ data: { boardId, name: parsed.data.name, position } }),
+    )
+
+    return NextResponse.json(column, { status: 201 })
+  })
+}

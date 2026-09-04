@@ -1,40 +1,49 @@
 # Summary — 0001 · Task management app (teams, boards, due dates)
 
-Status at close: **DEFINE complete and APPROVED at the gate on 2026-09-03.**
-The run was explicitly halted after the spec gate by the original request, so no plan and
-no code exist. Update the "Gate outcome" line below once the user answers.
+Status at close: **CONSTRUCT COMPLETE — all 19 plan slices done.**
+`define` ✓ approved · `design` ✓ (revised from the reference) · `blueprint` ✓ approved (v2) ·
+`construct` ✓ done. **`verify`, `harden`, `inspect` and `release` have NOT run.**
 
-Gate outcome: **APPROVED as written**, after the user was shown the no-password-reset risk
-and the polling-vs-push resolution. Neither was overridden. Next phase: `blueprint`.
+## Proven at close, not recalled
+
+| Check | Result |
+|---|---|
+| `pnpm lint` | exit 0 |
+| `pnpm test` | **171 passed** — also green under UTC, America/Los_Angeles, Asia/Tokyo |
+| `pnpm test:e2e` | **57 passed** |
+| `pnpm build` | exit 0 |
+| Schema drift | none (`migrate diff` exit 0) |
+| Working tree | clean |
+
+All 11 success criteria and all 7 invariants carry test references. Roughly 45 mutants were
+introduced across the run and every one was killed — after correcting three that turned out
+not to have applied at all, which is its own lesson.
 
 ## What exists
 
-| File | What it is |
-|---|---|
-| `engineering/profile.md` | How the suite operates here: committed in-repo workspace (git-verified), macOS/zsh, direct write access, single-agent, English. |
-| `engineering/standards.md` | Next.js + Postgres + Prisma; branch `task/NNNN-<slug>`; conventional commits; the project's **domain terms**. |
-| `engineering/decisions.md` | Five ADRs with reasoning: one-team board ownership · column-is-status · polling over push · hard delete · no email. |
-| `tasks/0001-.../intake.md` | 16 recorded Q&As across a setup round and three define rounds. |
-| `tasks/0001-.../spec.md` | The PRD: 11 provable success criteria, 7 invariants, the API contract, 20 explicit exclusions. |
-| `tasks/0001-.../design.md` | Distilled UI intent: screens, four states each, interactions, tokens, accessibility. |
+Signup provisions a usable board atomically. Boards carry user-defined columns; tasks can be
+created, edited, moved by keyboard or drag, assigned, dated and discussed. Teams add and
+remove members by email with a last-owner guard. Everything cascades on delete, and an open
+board re-fetches every ten seconds.
 
-## The decisions that shape everything downstream
+## The decisions that shaped it
 
-1. **A board belongs to exactly one team.** Every authorization check in the app reduces
-   to a membership lookup. There is no second ownership path, by design.
-2. **A task's column is its status.** One representation, so nothing can drift.
-3. **Polling, not push.** Resolved a genuine conflict between the stated "lean MVP" and a
-   real-time request. Up to 25s staleness is a stated product property.
-4. **Hard delete.** No `deletedAt` anywhere, no global query predicate to forget.
-5. **No email at all.** Which means **no password reset** — the largest accepted risk.
+1. **A board belongs to exactly one team**, so every authorization check is a membership lookup.
+2. **A task\'s column IS its status** — one representation, nothing to drift.
+3. **Authorization lives in the query**, never in a layout. Learned the hard way: a layout
+   check let a page serialise another team\'s board into a 404\'s RSC payload.
+4. **Dense ordering with no unique constraint**, guaranteed by one funnel plus tests.
+5. **Polling, not push**, with staleness stated as a product property.
+6. **Hard delete only**, with every cascade named in its confirmation.
+7. **The design reference contributed a visual language and no features** — all ten of its
+   extra capabilities were declined and recorded in `spec.md`.
 
-## What the next session must pick up
+## What the next session must do
 
-- **Git isolation is unresolved.** The repo has zero commits; `master` is an unborn ref, so
-  there was nothing to branch from and nothing was branched. Establish a baseline commit on
-  `main` *before* creating `task/0001-task-management-mvp`.
-- **`harden` is scheduled, not optional** — self-hosted credentials, plus the enumeration
-  oracle that SC7's helpful "no account with that email" message creates.
-- **I5 (dense integer ordering) is deferred to `blueprint`** deliberately: the spec commits
-  to stable explicit ordering, not to an encoding of it.
-- Nothing has been committed. The workspace is untracked; the first commit is the user's call.
+- **`verify` has not run.** Construct proves each slice; verify exercises the whole thing.
+- **`harden` is scheduled and NOT optional** — self-hosted credentials, SC7\'s deliberate
+  enumeration oracle, argon2 cost parameters left at defaults, and the login rate
+  limiting/lockout the spec explicitly deferred to it.
+- **Then `inspect`, then `release`** (GO/NO-GO gate).
+- **No password reset exists.** The largest accepted MVP risk, taken knowingly at the spec gate.
+- **CI should pin Node 24 LTS**; Prisma 7 warns on the local Node 25 (verified non-fatal).
