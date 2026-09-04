@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireColumnAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
 import { reorderWithin, compactPositions } from '@/lib/ordering'
 
 const patchColumnSchema = z
-  .object({ name: z.string().trim().min(1).max(100).optional(), position: z.number().int().min(0).optional() })
+  .object({ name: requiredText(100).optional(), position: z.number().int().min(0).optional() })
   .refine((v) => v.name !== undefined || v.position !== undefined, 'nothing to update')
 
 /** Rename and/or move. Both are ordinary member actions; only board deletion is owner-only. */

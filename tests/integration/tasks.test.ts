@@ -72,6 +72,28 @@ describe('T09 — task create', () => {
     expect(await titlesIn(columnId)).toEqual([])
   })
 
+  it('REGRESSION: a null byte in the title is rejected as 400, not a 500', async () => {
+    // Found in verify's adversarial pass. Postgres text cannot hold U+0000, so the insert
+    // failed with P2039 (invalid byte sequence for encoding UTF8) and surfaced as a 500 —
+    // a trivially reachable unhandled error. The validation boundary accepted a character
+    // the storage layer cannot represent.
+    const withNul = `before${String.fromCharCode(0)}after`
+    const res = await createTask(json(`/api/columns/${columnId}/tasks`, 'POST', { title: withNul }), {
+      params: Promise.resolve({ columnId }),
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error.code).toBe('INVALID_INPUT')
+    expect(await titlesIn(columnId)).toEqual([])
+  })
+
+  it('REGRESSION: a null byte in the description is rejected too', async () => {
+    const res = await createTask(
+      json(`/api/columns/${columnId}/tasks`, 'POST', { title: 'ok', description: `a${String.fromCharCode(0)}b` }),
+      { params: Promise.resolve({ columnId }) },
+    )
+    expect(res.status).toBe(400)
+  })
+
   it('a non-member cannot create a task, and gets the shared 404', async () => {
     signedInAs(outsiderToken)
     const res = await createTask(json(`/api/columns/${columnId}/tasks`, 'POST', { title: 'Sneaky' }), {

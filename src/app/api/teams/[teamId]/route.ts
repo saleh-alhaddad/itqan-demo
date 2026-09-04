@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireTeamOwner } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
 
-const patchTeamSchema = z.object({ name: z.string().trim().min(1).max(100) })
+const patchTeamSchema = z.object({ name: requiredText(100) })
 
 /** Rename. Owner only — `requireTeamOwner` refuses a plain member with the shared 404. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: string }> }) {

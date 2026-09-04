@@ -71,6 +71,18 @@ describe('T07 — GET /api/boards/:id', () => {
     expect(text).not.toContain(COMMENT_SENTINEL)
   })
 
+  it('does NOT ship member email addresses — the board renders initials, not emails', async () => {
+    // Found in verify: the polled payload carried every assignee's and every team member's
+    // email while no board component reads one. Two costs: 13% of a 151KB response that is
+    // re-fetched every ten seconds, and each member's address exposed to every board viewer
+    // for no functional reason. Team settings fetches emails through its own query.
+    signedInAs(ownerToken)
+    const text = await (await call(boardId)).text()
+    expect(text).not.toContain(owner.email)
+    expect(text).not.toContain('@example.test')
+    expect(text).not.toContain('"email"')
+  })
+
   it('never leaks a password hash through the assignee records', async () => {
     signedInAs(ownerToken)
     const text = await (await call(boardId)).text()

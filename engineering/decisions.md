@@ -98,3 +98,22 @@ Consequence:  A page or handler CANNOT obtain team-scoped data without passing t
 Status:       accepted
 Guarded by:   `e2e/board.spec.ts` "a stranger's 404 contains none of the board's data",
               mutation-checked — reverting the query to unscoped turns it red.
+
+## Transient write conflicts are retried, not surfaced · 2026-09-04
+Decision:     A Prisma P2034 (TransactionWriteConflict) inside the ordering funnel is retried
+              up to 3 times with randomised backoff. Only P2034; every other error propagates.
+Why:          Reordering reads a column's order and rewrites the affected run, so two
+              concurrent reorders on one column overlap and Postgres aborts one. The abort is
+              the database doing its job — it leaves no partial state and the dense-position
+              invariant holds — but it is transient, and it was reaching the client as a 500.
+              Two people dragging cards on the same board simultaneously is precisely what
+              this product is for, which makes it the likeliest concurrent path in the app.
+Alternatives: Return 409 and let the client retry (rejected for a drag: the user sees a card
+              snap back for a reason that is not their problem). Serializable isolation with
+              application-level locking (rejected: far more machinery for a conflict that
+              resolves by simply trying again). Sparse/fractional ordering keys, which avoid
+              the conflict entirely (deferred — that is D1's recorded revisit trigger).
+Bounded:      3 attempts, P2034 only. Retrying a genuine failure would hide it.
+Status:       accepted
+Guarded by:   tests/integration/task-move.test.ts concurrency regressions — verified by
+              disabling the retry, which turns them red in 3 of 4 runs.

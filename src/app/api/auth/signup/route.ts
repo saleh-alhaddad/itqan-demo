@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { PrismaClientKnownRequestError } from '@/generated/prisma/internal/prismaNamespace'
 import { provisionNewAccount } from '@/lib/provisioning'
 import { createSession, buildSessionCookie } from '@/lib/auth/session'
@@ -13,7 +14,7 @@ import { apiError } from '@/lib/api/errors'
 export const signupSchema = z.object({
   email: z.email().max(254),
   password: z.string().min(12).max(200),
-  name: z.string().trim().min(1).max(100),
+  name: requiredText(100),
 })
 
 export async function POST(request: Request) {

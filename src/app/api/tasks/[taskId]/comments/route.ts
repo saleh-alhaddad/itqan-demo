@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireTaskAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
 
-const commentSchema = z.object({ body: z.string().trim().min(1).max(5000) })
+const commentSchema = z.object({ body: requiredText(5000) })
 
 /**
  * Comments on a task. Flat and plain text: threading, mentions, reactions and markdown are

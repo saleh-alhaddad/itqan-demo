@@ -82,6 +82,40 @@ describe('T10 — moving between columns', () => {
     expect(reloaded.position).toBe(0)
   })
 
+  it('REGRESSION: concurrent moves in one column do not 500 (P2034 write conflict)', async () => {
+    // Found in verify's adversarial pass. Two reorders touching the same column conflict at
+    // the database (P2034 TransactionWriteConflict). The abort itself is correct and safe —
+    // no partial state, the invariant holds — but it surfaced to the caller as a 500.
+    // Two people dragging cards on the same board at once is the core collaborative action
+    // of this product, so this is the likeliest concurrent path there is.
+    const tasks = await prisma.task.findMany({ where: { columnId: todo }, orderBy: { position: 'asc' } })
+    const responses = await Promise.all(
+      tasks.map((t, i) => move(t.id, { position: (i + 1) % tasks.length })),
+    )
+    for (const res of responses) {
+      expect(res.status, `a concurrent move returned ${res.status}`).toBeLessThan(500)
+    }
+    // And the column is still dense afterwards, whichever order they landed in.
+    const after = (await prisma.task.findMany({ where: { columnId: todo }, orderBy: { position: 'asc' } }))
+      .map((t) => t.position)
+    expect(after).toEqual(after.map((_, i) => i))
+  })
+
+  it('REGRESSION: concurrent moves across two columns do not 500', async () => {
+    const tasks = await prisma.task.findMany({ where: { columnId: todo } })
+    const responses = await Promise.all(
+      tasks.map((t, i) => move(t.id, { columnId: i % 2 ? doing : todo, position: 0 })),
+    )
+    for (const res of responses) {
+      expect(res.status, `a concurrent cross-column move returned ${res.status}`).toBeLessThan(500)
+    }
+    for (const col of [todo, doing]) {
+      const ps = (await prisma.task.findMany({ where: { columnId: col }, orderBy: { position: 'asc' } })).map((t) => t.position)
+      expect(ps).toEqual(ps.map((_, i) => i))
+    }
+    expect(await prisma.task.count({ where: { columnId: { in: [todo, doing] } } })).toBe(5)
+  })
+
   it('never leaves a duplicate or a gap across a run of random moves', async () => {
     for (let i = 0; i < 10; i++) {
       const all = await prisma.task.findMany({ where: { columnId: { in: [todo, doing] } } })

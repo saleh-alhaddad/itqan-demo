@@ -20,6 +20,39 @@ type Scope = { boardId: string } | { columnId: string }
  * and nothing would notice. Both columns and tasks go through here for that reason.
  */
 
+/**
+ * Re-runs a transaction that lost a write conflict.
+ *
+ * Reordering reads a column's order and then rewrites the affected run. Two of those
+ * touching the same column overlap, and Postgres aborts one with a serialization failure
+ * (Prisma P2034). **The abort is correct** — it leaves no partial state and the dense
+ * invariant holds — but it is transient: the retry re-reads the now-committed order and
+ * applies cleanly.
+ *
+ * Found in verify's adversarial pass, where it surfaced to the caller as a 500. Two people
+ * dragging cards on the same board at once is this product's core collaborative action, so
+ * this is the likeliest concurrent path in the whole application.
+ *
+ * Bounded and narrow on purpose: only P2034 is retried, three attempts, with a short
+ * randomised backoff so two racing callers do not simply collide again in lockstep. Any
+ * other error propagates untouched — retrying a genuine failure would just hide it.
+ */
+const WRITE_CONFLICT = 'P2034'
+
+export async function retryOnWriteConflict<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      const isConflict =
+        typeof err === 'object' && err !== null && 'code' in err &&
+        (err as { code: unknown }).code === WRITE_CONFLICT
+      if (!isConflict || attempt >= attempts) throw err
+      await new Promise((r) => setTimeout(r, 10 * attempt + Math.random() * 15))
+    }
+  }
+}
+
 /** Rows are only ever addressed through these two names, so the cast is contained here. */
 const modelOf = (client: Client, kind: Orderable) =>
   (kind === 'column' ? client.column : client.task) as {
@@ -51,7 +84,7 @@ export async function reorderWithin(
   id: string,
   targetIndex: number,
 ): Promise<void> {
-  await client.$transaction(async (tx) => {
+  await retryOnWriteConflict(() => client.$transaction(async (tx) => {
     const model = modelOf(tx as unknown as Client, kind)
     const rows = await model.findMany({ where: scope, orderBy: { position: 'asc' }, select: { id: true } })
 
@@ -72,7 +105,7 @@ export async function reorderWithin(
     for (let i = lo; i <= hi; i++) {
       await model.update({ where: { id: ordered[i].id }, data: { position: i } })
     }
-  })
+  }))
 }
 
 /**
@@ -80,11 +113,11 @@ export async function reorderWithin(
  * from the middle otherwise leaves a hole in the sequence.
  */
 export async function compactPositions(client: Client, kind: Orderable, scope: Scope): Promise<void> {
-  await client.$transaction(async (tx) => {
+  await retryOnWriteConflict(() => client.$transaction(async (tx) => {
     const model = modelOf(tx as unknown as Client, kind)
     const rows = await model.findMany({ where: scope, orderBy: { position: 'asc' }, select: { id: true } })
     for (let i = 0; i < rows.length; i++) {
       await model.update({ where: { id: rows[i].id }, data: { position: i } })
     }
-  })
+  }))
 }

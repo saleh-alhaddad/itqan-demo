@@ -223,3 +223,22 @@ painted pixel of the tinted card it sits on.
 
 The suite runs under four timezones spanning UTC-8 to UTC+14. Both the classifier and, at
 first, the test itself had timezone bugs — see intake R16.
+
+## 2026-09-04 · verify — PASS, after three defects found by exercising it for real
+The suite was green throughout; none of these came from unit tests. All three came from an
+adversarial pass written against the spec and run at a live server, and each was root-caused
+and pinned with a failing test before any fix.
+
+- **A null byte in any text field returned 500.** Postgres `text` cannot hold U+0000. The
+  validation boundary checked the string's shape but not whether the storage layer could hold
+  it. One `storableText` rule now covers all nine routes carrying user text.
+- **Concurrent removal of the same member returned 500.** The handler read the membership
+  then deleted it; a concurrent request removed it in between. `deleteMany` is idempotent,
+  and removing someone already removed is the desired state.
+- **Concurrent task moves returned 500** — the one that matters most, since two people
+  dragging cards on the same board at once is the core collaborative action. Two reorders
+  overlap and Postgres aborts one; the abort is correct but transient, and is now retried.
+
+Also measured rather than assumed: the polled board query is p50 4.4ms with 4 SQL statements
+on a 360-task board, and the payload dropped 151.3 KB → 122.3 KB after removing member email
+addresses that no board component reads.

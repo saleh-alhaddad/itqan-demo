@@ -36,9 +36,10 @@
       "note": "ALL 19 plan slices done (T01-T18 + T10a). Proving set green and re-run at close: lint exit 0 \u00b7 171 unit+integration (also green under UTC, America/Los_Angeles, Asia/Tokyo) \u00b7 57 e2e \u00b7 build exit 0 \u00b7 zero schema drift. All 11 success criteria and all 7 invariants have test references. ~45 mutants introduced across the run; every one killed after correcting three that had not actually applied."
     },
     "verify": {
-      "status": "todo",
-      "validated": false,
-      "artifact": null
+      "status": "done",
+      "validated": true,
+      "artifact": "verify.md",
+      "note": "PASS after finding and fixing 3 defects. Proving set re-run fresh: lint 0 \u00b7 178 unit+integration (green under LA and Tokyo) \u00b7 61 e2e no flakes \u00b7 build 0. Database pack: migration up 0.77s/10 tables; NO down path exists (finding). Prod-shaped volume 480 tasks: polled board query p50 4.4ms, 4 SQL statements, no N+1. Browser gates: zero console errors AND warnings across the core flow, every control named, keyboard completable. 18 adversarial probes: 16/18 first run, 18/18 after fixes, 3 consecutive runs, zero server errors. DEFECTS FIXED: (1) null byte in any text field -> 500 (P2039), fixed with one storable-text rule across 9 routes; (2) concurrent member removal -> 500 (P2025), fixed with idempotent deleteMany; (3) concurrent task moves -> 500 (P2034 write conflict), fixed with a bounded retry \u2014 the most consequential, since concurrent dragging is the core collaborative action. Each root-caused before any fix and pinned with a failing test first."
     },
     "harden": {
       "status": "todo",
@@ -60,12 +61,13 @@
     }
   },
   "open_items_for_resume": [
-    "NEXT PHASE: verify \u2014 exercise the whole thing for real (construct is done, verify has NOT run).",
-    "SCHEDULED, NOT OPTIONAL: harden must run before release. Self-hosted credentials plus SC7's deliberate enumeration oracle (the explicit \"no account with that email\"), argon2 cost parameters left at library defaults for harden to tune, and login rate limiting / lockout which the spec explicitly deferred to harden.",
+    "NEXT PHASE: harden \u2014 SCHEDULED AND NOT OPTIONAL before release. Self-hosted credentials; SC7 enumeration oracle; argon2 cost parameters still at library defaults; login rate limiting/lockout deferred to it by the spec.",
     "THEN: inspect, then release (GO/NO-GO gate).",
-    "NOT BUILT, BY DECISION (Q21): all ten design-reference features are declined and recorded in spec.md under \"Declined from the design reference\". The reference is closed as a source of scope.",
-    "KNOWN MVP RISK, ACCEPTED: no password reset exists. Largest product risk, accepted at the spec gate.",
-    "CI SHOULD PIN NODE 24 LTS \u2014 Prisma 7 prints an unsupported-version banner on the local Node 25."
+    "FINDING (verify): no schema rollback path \u2014 Prisma generates no down.sql. Harmless for migration #1 (rollback = empty database); release needs a plan before migration #2.",
+    "FINDING (verify): the polled board payload is 122 KB on a 360-task board (p50 4.4ms, 4 SQL statements). Within MVP tolerance; spec.md names the changed-since mitigation if poll volume grows. Measured, not guessed.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset exists.",
+    "CI SHOULD PIN NODE 24 LTS \u2014 Prisma 7 warns on the local Node 25.",
+    "Scratch DB itqan_verify holds the volume fixture so the measurement can be repeated."
   ],
   "halt_reason": null
 }

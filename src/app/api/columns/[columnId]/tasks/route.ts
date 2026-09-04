@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText, storableText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireColumnAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
@@ -11,8 +12,8 @@ import { appendPosition } from '@/lib/ordering'
  * demanding them up front would put a form between the user and capturing a thought.
  */
 const createTaskSchema = z.object({
-  title: z.string().trim().min(1).max(300),
-  description: z.string().trim().max(10_000).optional(),
+  title: requiredText(300),
+  description: storableText(10_000).optional(),
   dueDate: z.iso.date().optional(),
 })
 

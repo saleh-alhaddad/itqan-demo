@@ -31,7 +31,11 @@ export async function loadBoardFor(userId: string, boardId: string) {
       teamId: true,
       // The roster the assignee picker offers. Scoped to this board's team, so the UI
       // cannot present a person the server would then reject (I4).
-      team: { select: { memberships: { select: { role: true, user: { select: { id: true, name: true, email: true } } } } } },
+      // Names only. The board renders initials and names; nothing on it shows an email,
+      // and this payload is re-fetched every ten seconds by everyone with the board open.
+      // Shipping addresses here would expose every member's email to every viewer for no
+      // functional reason — team settings fetches them through its own query.
+      team: { select: { memberships: { select: { role: true, user: { select: { id: true, name: true } } } } } },
       columns: {
         orderBy: { position: 'asc' },
         select: {
@@ -47,7 +51,7 @@ export async function loadBoardFor(userId: string, boardId: string) {
               dueDate: true,
               position: true,
               columnId: true,
-              assignees: { select: { user: { select: { id: true, name: true, email: true } } } },
+              assignees: { select: { user: { select: { id: true, name: true } } } },
               _count: { select: { comments: true } },
             },
           },

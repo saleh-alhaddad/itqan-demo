@@ -2,4 +2,4 @@
 
 | # | task folder              | title                             | status              |
 |---|--------------------------|-----------------------------------|---------------------|
-| 1 | 0001-task-management-mvp | Task management app — teams, boards, due dates | construct complete — all 19 slices done (next: verify, then harden before release) |
+| 1 | 0001-task-management-mvp | Task management app — teams, boards, due dates | verify PASSED (3 defects found and fixed) — next: harden, then inspect, then release |

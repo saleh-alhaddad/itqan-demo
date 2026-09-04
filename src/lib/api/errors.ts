@@ -24,6 +24,8 @@ export type ErrorCode =
   | 'NOT_A_MEMBER'
   /** SC6: the actor may see the resource but not perform THIS action on it. */
   | 'FORBIDDEN'
+  /** Two transactions wrote the same rows; one aborted. Transient and safe to retry. */
+  | 'WRITE_CONFLICT'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {

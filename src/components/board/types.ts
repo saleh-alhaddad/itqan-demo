@@ -1,4 +1,7 @@
 /** The board payload shape, mirroring GET /api/boards/:id. */
+/** As carried on the board payload: names only, deliberately — see lib/boards.ts. */
+export type Member = { id: string; name: string }
+
 export type BoardTask = {
   id: string
   title: string
@@ -6,12 +9,11 @@ export type BoardTask = {
   dueDate: Date | string | null
   position: number
   columnId: string
-  assignees: { id: string; name: string; email: string }[]
+  assignees: Member[]
   commentCount: number
 }
 
 export type BoardColumn = { id: string; name: string; position: number; tasks: BoardTask[] }
-export type Member = { id: string; name: string; email: string }
 export type Board = {
   id: string
   name: string

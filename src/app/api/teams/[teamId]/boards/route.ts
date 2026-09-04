@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireTeamMember } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
 import { createBoardWithDefaultColumns } from '@/lib/provisioning'
 
-const createBoardSchema = z.object({ name: z.string().trim().min(1).max(100) })
+const createBoardSchema = z.object({ name: requiredText(100) })
 
 /**
  * Create a board. ANY member may — only DELETION is owner-only (SC6).

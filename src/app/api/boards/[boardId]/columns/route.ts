@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireBoardAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
 import { appendPosition } from '@/lib/ordering'
 
-const createColumnSchema = z.object({ name: z.string().trim().min(1).max(100) })
+const createColumnSchema = z.object({ name: requiredText(100) })
 
 /** Any member of the board's team may add a column. */
 export async function POST(request: Request, ctx: { params: Promise<{ boardId: string }> }) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireBoardAccess, requireTeamOwner } from '@/lib/auth/guard'
 import { handleErrors, notFound, apiError } from '@/lib/api/errors'
@@ -23,7 +24,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ boardId: s
   })
 }
 
-const patchBoardSchema = z.object({ name: z.string().trim().min(1).max(100) })
+const patchBoardSchema = z.object({ name: requiredText(100) })
 
 /** Rename. Any member of the board's team — renaming is not a destructive act. */
 export async function PATCH(request: Request, ctx: { params: Promise<{ boardId: string }> }) {

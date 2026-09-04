@@ -7,6 +7,18 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Storable text:   Every user-supplied string that reaches Postgres goes through
+                 `lib/api/validation.ts`. A `text` column cannot hold U+0000, and accepting
+                 one produced a trivially reachable 500. Validation must check what the
+                 STORAGE layer accepts, not only the string's shape.  · learned in verify · 2026-09-04
+Write conflicts: Concurrent transactions touching the same rows abort with Prisma P2034.
+                 That abort is CORRECT — no partial state — but transient, so it is retried
+                 (bounded, P2034 only), never surfaced as a 500. Reordering is the hot path:
+                 two people dragging cards on one board is the core collaborative action.
+                 · learned in verify · 2026-09-04
+Idempotent deletes: Use `deleteMany` for removals that can race. `delete` throws when the
+                 row is already gone, and "already removed" is the desired state, not an
+                 error.  · learned in verify · 2026-09-04
 Dates/timezones: A test for timezone-correctness must not itself be timezone-dependent. The
                  due-date suite first built "today" from a UTC-midnight instant, so it passed
                  in Tokyo and failed in Los Angeles. Build "today" from LOCAL fields, due

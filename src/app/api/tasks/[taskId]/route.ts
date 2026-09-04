@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requiredText, storableText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireTaskAccess, requireColumnAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
-import { reorderWithin, compactPositions, appendPosition } from '@/lib/ordering'
+import { reorderWithin, compactPositions, appendPosition, retryOnWriteConflict } from '@/lib/ordering'
 
 /**
  * Edit and move. `null` is meaningful for the optional fields — it CLEARS them — which is
@@ -11,8 +12,8 @@ import { reorderWithin, compactPositions, appendPosition } from '@/lib/ordering'
  * `null` means "remove". Conflating the two would make a due date impossible to clear.
  */
 const patchTaskSchema = z.object({
-  title: z.string().trim().min(1).max(300).optional(),
-  description: z.string().trim().max(10_000).nullable().optional(),
+  title: requiredText(300).optional(),
+  description: storableText(10_000).nullable().optional(),
   dueDate: z.iso.date().nullable().optional(),
   columnId: z.string().optional(),
   position: z.number().int().min(0).optional(),
@@ -40,10 +41,14 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ taskId: s
       await requireColumnAccess(user.id, columnId)
       const sourceColumnId = task.columnId
 
-      await prisma.task.update({
-        where: { id: taskId },
-        data: { columnId, position: await appendPosition(prisma, 'task', { columnId }) },
-      })
+      // Same transient-conflict story as the funnel: two people moving cards into the same
+      // column at once can abort one another harmlessly.
+      await retryOnWriteConflict(async () =>
+        prisma.task.update({
+          where: { id: taskId },
+          data: { columnId, position: await appendPosition(prisma, 'task', { columnId }) },
+        }),
+      )
       // The source column now has a hole where the task was.
       await compactPositions(prisma, 'task', { columnId: sourceColumnId })
       if (position !== undefined) await reorderWithin(prisma, 'task', { columnId }, taskId, position)

@@ -139,6 +139,30 @@ describe('T12 — removing a member clears their assignments (I4 / SC9)', () => 
   })
 })
 
+describe('T12 — REGRESSION: removing a member is idempotent under concurrency', () => {
+  it('two simultaneous removals of the same member both resolve without a 500', async () => {
+    // Found in verify's adversarial pass. The handler read the membership, then deleted it;
+    // a concurrent request committed its delete in between, so the second `delete` threw
+    // P2025 (record not found) and surfaced as a 500. A write conflict (P2034) is the other
+    // shape of the same race. Removing someone already removed is the desired state, not an
+    // error.
+    const [r1, r2] = await Promise.all([
+      removeMember(req('DELETE'), memberCtx(member.id)),
+      removeMember(req('DELETE'), memberCtx(member.id)),
+    ])
+    for (const res of [r1, r2]) {
+      expect(res.status, `got ${res.status}`).toBeLessThan(500)
+    }
+    expect(await prisma.membership.count({ where: { teamId, userId: member.id } })).toBe(0)
+  })
+
+  it('removing someone who was never a member is a no-op, not an error', async () => {
+    const stranger = await makeUser()
+    const res = await removeMember(req('DELETE'), memberCtx(stranger.id))
+    expect(res.status).toBeLessThan(500)
+  })
+})
+
 describe('T12 — owner-only actions (SC6)', () => {
   it('owner renames; member cannot', async () => {
     expect((await patchTeam(req('PATCH', { name: 'Renamed' }), ctx())).status).toBe(200)

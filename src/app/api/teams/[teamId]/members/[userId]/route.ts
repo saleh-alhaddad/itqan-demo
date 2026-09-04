@@ -48,6 +48,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ teamId: s
       return NextResponse.json(updated)
     } catch (err) {
       if (err instanceof LastOwnerError) return lastOwner()
+      if (isWriteConflict(err)) return writeConflict()
       throw err
     }
   })
@@ -74,10 +75,15 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ teamId:
         await tx.taskAssignee.deleteMany({
           where: { userId, task: { column: { board: { teamId } } } },
         })
-        await tx.membership.delete({ where: { userId_teamId: { userId, teamId } } })
+        // deleteMany, not delete: `delete` throws P2025 when the row is already gone, and
+        // it can be gone — two people removing the same member at once, or one person
+        // double-clicking. Removing someone who is already removed is the desired state,
+        // not an error.
+        await tx.membership.deleteMany({ where: { userId, teamId } })
       })
     } catch (err) {
       if (err instanceof LastOwnerError) return lastOwner()
+      if (isWriteConflict(err)) return writeConflict()
       throw err
     }
 
@@ -88,3 +94,17 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ teamId:
 const lastOwner = () =>
   apiError('LAST_OWNER', 409,
     'A team must keep at least one owner. Make someone else an owner first, or delete the team.')
+
+/**
+ * P2034 — two transactions wrote the same rows and one was aborted.
+ *
+ * Transient by nature, and safe: an aborted transaction leaves no partial state, so the
+ * invariant still holds. It reached the client as a 500 before, which is both wrong (nothing
+ * is broken) and unhelpful (the caller cannot tell that retrying would work).
+ */
+function isWriteConflict(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 'P2034'
+}
+
+const writeConflict = () =>
+  apiError('WRITE_CONFLICT', 409, 'Someone changed this team at the same moment. Please try again.')
