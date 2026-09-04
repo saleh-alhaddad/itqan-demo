@@ -69,3 +69,37 @@ export async function loadBoardFor(userId: string, boardId: string) {
 }
 
 export type BoardPayload = NonNullable<Awaited<ReturnType<typeof loadBoardFor>>>
+
+/**
+ * Every board the actor can reach, grouped by the team that owns it.
+ *
+ * This is where login lands, so it must never throw for an ordinary account — including one
+ * with no teams at all, which returns an empty list rather than an error.
+ *
+ * Scoped by membership in the query, like every other team-scoped read: the actor's own
+ * `Membership` rows are the starting point, so a board from a team they do not belong to
+ * cannot appear no matter what the caller does.
+ */
+export async function listBoardsFor(userId: string) {
+  const memberships = await prisma.membership.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      role: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          boards: { orderBy: { createdAt: 'asc' }, select: { id: true, name: true } },
+        },
+      },
+    },
+  })
+
+  return memberships.map(({ role, team }) => ({
+    id: team.id,
+    name: team.name,
+    role,
+    boards: team.boards,
+  }))
+}

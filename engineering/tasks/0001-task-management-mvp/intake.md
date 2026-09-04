@@ -377,3 +377,21 @@ Guard:     an e2e now asserts `--font-sans` resolves to a non-empty value and th
 Worth keeping: **no functional assertion can see this class of defect.** Behaviour was
            correct throughout. Rendering the app and LOOKING at it is a distinct verification
            step from running its tests, and belongs in `verify`.
+
+### R13 · construct · 2026-09-04 · DEFECT REPORTED BY THE USER — login landed on a 404
+Situation: logging in as a returning user redirected to `/boards`, which had no `page.tsx`.
+           Every successful login landed on a 404. Reported by the user after reproducing it
+           manually in a browser; confirmed here before any change.
+Why 24 e2e tests missed it: **every one of them signed up**, and signup redirects to
+           `/boards/:id`. The login redirect was never exercised by anything. The only login
+           reference in the suite visited the page to assert the absence of a reset link.
+           The suite covered a lot of behaviour and had a whole *user journey* missing.
+Cause:     a plan ordering defect of the same class as R5 — T05 built login and pointed it at
+           `/boards`, a surface T15 owns. Nothing connected the two, so the gap sat open.
+Fix:       built the minimum that makes login correct: `listBoardsFor(userId)` (membership-
+           scoped like every other team-scoped read) and a `/boards` page listing boards
+           grouped by team, with an empty state. **T15 still owns** board create/rename/delete.
+Guard:     `e2e/login.spec.ts` signs up, logs OUT, logs back in, and asserts no navigation
+           returned 404. Mutation-checked by deleting the page again, which turns it red.
+Lesson worth keeping: coverage counted in assertions hid a missing journey. Ask which
+           *entry points* a real user has — signup and login are two, and only one was tested.

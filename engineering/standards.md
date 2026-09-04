@@ -7,6 +7,10 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Journey cover:   Test every ENTRY POINT a real user has, not just every behaviour. 24 e2e
+                 tests missed that login landed on a 404 because all of them signed up, and
+                 signup redirects elsewhere. Count journeys, not assertions.
+                 · learned from a user-reported bug · 2026-09-04
 Visual check:    Rendering the app and LOOKING at it is a separate step from running its
                  tests. A self-referential CSS variable made every surface fall back to
                  serif while 114 tests, lint and build stayed green — behaviour was correct

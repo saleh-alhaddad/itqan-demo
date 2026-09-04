@@ -168,3 +168,18 @@ that resolves to nothing, so every surface fell back to the browser's default se
 All 114 tests, lint and the build were green throughout — behaviour was never wrong. Only a
 screenshot showed it. An e2e now asserts the variable resolves and the body font is not a
 serif fallback, and `standards.md` records that a visual check is its own verification step.
+
+### 2026-09-04 · Fix — every login landed on a 404
+Login redirected to `/boards`, which had no page: only `/boards/[boardId]` existed. Reported
+by the user from a manual browser session.
+
+The suite could not have caught it. All 24 e2e tests signed up, and signup redirects to
+`/boards/:id`, so the login redirect was never followed by anything. The one login test
+visited the page to check a reset link was absent. Behaviour coverage was good; an entire
+user journey was untested.
+
+Fixed with the minimum that makes login correct: `listBoardsFor(userId)` — membership-scoped
+in the query, like every other team-scoped read — and a `/boards` page listing boards grouped
+by team, with an empty state for a user who has none. Board create, rename and delete remain
+T15's. The regression test signs up, logs out, logs back in and asserts no navigation
+returned 404; it was mutation-checked by deleting the page again.

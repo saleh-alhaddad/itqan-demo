@@ -484,6 +484,10 @@ Goal:       A user with more than one board can find them, create boards, and on
             can delete them.
 Consumes:   T04 (`createBoardWithDefaultColumns()`), T07, T12.
 Produces:   `GET /api/teams` + board list screen; board create/rename/delete.
+            **Note (2026-09-04):** the board LIST and `listBoardsFor` were pulled forward to
+            fix a user-reported bug — login pointed at `/boards`, which did not exist, so
+            every login 404'd (intake R13). T15 retains create/rename/delete and grouping
+            polish; acceptance #1 is already met and guarded by `e2e/login.spec.ts`.
 Acceptance: 1. The board list shows boards across all the actor's teams, **grouped by team**.
                **(`design.md`)**
             2. **Any member** can create a board in their team; a new board arrives with the
