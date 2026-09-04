@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireUserOrRedirect } from '@/lib/auth/guard'
 import { listBoardsFor } from '@/lib/boards'
+import { CreateBoard } from '@/components/board/CreateBoard'
 
 /**
  * Where a returning user lands after logging in.
@@ -28,24 +29,29 @@ export default async function BoardsPage() {
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-sm font-medium">You don&rsquo;t have any boards yet.</p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Boards live inside a team. Ask a team owner to add you, or create one from your
-            team&rsquo;s settings.
+            Boards live inside a team. Create one below, or ask a team owner to add you to theirs.
           </p>
+          {teams.length > 0 ? (
+            <div className="mt-4 flex justify-center">
+              <CreateBoard teamId={teams[0].id} teamName={teams[0].name} />
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-8">
           {teams.map((team) => (
             <section key={team.id} aria-labelledby={`team-${team.id}`} data-testid="team-group">
-              <div className="mb-3 flex items-baseline gap-2">
+              <div className="mb-3 flex flex-wrap items-center gap-3">
                 <h2 id={`team-${team.id}`} className="text-sm font-semibold">{team.name}</h2>
                 <span className="text-muted-foreground text-xs">
                   {team.role === 'OWNER' ? 'Owner' : 'Member'}
                 </span>
                 {/* The only route to team settings. Without it the page exists and nothing
                     links to it — the same shape of gap as a redirect to a missing page. */}
+                <CreateBoard teamId={team.id} teamName={team.name} />
                 <Link
                   href={`/teams/${team.id}/settings`}
-                  className="text-muted-foreground hover:text-foreground ml-auto text-xs underline underline-offset-4"
+                  className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-4"
                 >
                   Team settings
                 </Link>

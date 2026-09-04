@@ -530,7 +530,7 @@ Shape:      `src/app/api/teams/[teamId]/boards/route.ts`,
             duplicating the three-column literal — two copies of "the default columns" is
             exactly the pair that drifts.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 16 — Cascading deletes and destructive confirmations
 Goal:       Deleting anything leaves no orphan rows anywhere below it.

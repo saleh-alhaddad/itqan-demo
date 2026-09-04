@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { AddColumn } from './AddColumn'
 import { DragContext } from './DragContext'
 import { BoardAnnouncer } from './BoardAnnouncer'
+import { BoardActions } from './BoardActions'
 import type { Board } from './types'
 
 /**
@@ -33,7 +34,12 @@ export function BoardView({ initialBoard, viewerId }: { initialBoard: Board; vie
           >
             Boards
           </Link>
-          <h1 className="truncate text-lg font-semibold">{board.name}</h1>
+          <BoardActions
+            boardId={board.id}
+            name={board.name}
+            taskCount={board.columns.reduce((n, c) => n + c.tasks.length, 0)}
+            viewerIsOwner={board.viewerIsOwner}
+          />
         </div>
         <Link
           href={`/teams/${board.teamId}/settings`}
