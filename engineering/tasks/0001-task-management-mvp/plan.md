@@ -602,7 +602,7 @@ Shape:      `tests/integration/authz-matrix.test.ts`, `tests/integration/permiss
             quiet gap. This is the task that turns D2's funnel from a good intention into
             a checked property.
 Size:       M
-Status:     todo
+Status:     done
 
 ---
 
