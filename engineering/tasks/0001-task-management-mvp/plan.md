@@ -551,7 +551,7 @@ Shape:      `tests/integration/cascades.test.ts`, plus any FK `onDelete` correct
             it finds a missing cascade the fix is a migration, and finding that here — with
             the full tree seeded — is cheaper than finding it after release.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 17 — Polling
 Goal:       An open board reflects other people's changes without anyone pressing refresh.
