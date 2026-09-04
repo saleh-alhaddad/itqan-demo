@@ -122,10 +122,42 @@ Node pinned to **24 LTS**, not the local 25: Prisma 7 prints an unsupported-vers
 The drift command was **run locally in the exact CI form** before being committed (exit 0, "No
 difference detected") rather than trusted to be correct in YAML.
 
-**What this does not yet prove.** The workflow has not been observed green on GitHub — it is
-committed, not yet exercised. Until a run completes, blocker #3 is closed *in code*, and
-checklist item 4 ("CI green on the exact commit being shipped") remains unsatisfied for any
-future production deploy.
+**Observed green — blocker #3 is closed in fact, not in code.** Run
+[`33915685839`](https://github.com/saleh-alhaddad/itqan-demo/actions/runs/33915685839),
+conclusion **`success`** in 3m29s on `c8809e2`, triggered by the pull_request event on
+[PR #1](https://github.com/saleh-alhaddad/itqan-demo/pull/1):
+
+| Step | Result on a machine that is not the developer's |
+|---|---|
+| Schema drift | `No difference detected` |
+| `pnpm lint` | pass |
+| `pnpm test` — UTC / America/Los_Angeles / Asia/Tokyo | **210 / 210 / 210 passed** |
+| `pnpm build` | `Compiled successfully in 6.2s` |
+| `pnpm test:e2e` | **72 passed** (1.4m) |
+
+Every step succeeded. The one skipped step is the report upload, which is `if: failure()` — a
+skipped artifact upload is what a passing run is supposed to look like.
+
+This is the first time any of these counts has been reproduced off the developer's laptop,
+which was the entire content of the blocker.
+
+PR #1 merged as `0963767` with a **merge commit, not a squash**: the release checklist requires
+that the artifact promoted is the one CI tested, and a squash would have minted a new SHA no
+run had ever seen. `git merge-base --is-ancestor c8809e2 main` confirms the tested commit is in
+`main`'s history.
+
+Both triggers are proven, not just the one: run
+[`33916701161`](https://github.com/saleh-alhaddad/itqan-demo/actions/runs/33916701161) also
+concluded **`success`**, fired by the **push** event on `main` at merge commit `0963767`. The
+pull_request path was proven by #1; the push path by the merge itself.
+
+**Checklist item 4 is now satisfiable** for a future deploy — CI can be green on the exact
+commit being shipped, because CI exists and runs on every push to `main` and every PR.
+
+*Method note:* the first success signal was discarded rather than trusted. `gh run watch
+--exit-status | tail` returns **tail's** exit code, not `gh`'s, so it reports 0 for a red run
+too. The conclusion above was read back from the API instead — the same failure mode as a
+mutation test that never applied.
 
 ### Blockers still open — unchanged and deliberate
 
@@ -133,8 +165,9 @@ future production deploy.
 |---|---|---|
 | 1 | No observability | **Open.** Nobody could answer "is it working?" after a deploy |
 | 2 | No schema rollback path | **Open.** Safe today only because both migrations are additive |
-| 3 | No CI | **Closed in code**, pending its first green run |
+| 3 | No CI | ✅ **CLOSED** — run `33915685839` green; CI runs on every push to `main` and every PR |
 | 4 | No deployment target | **Open.** `spec.md`: "No deployment target is assumed" |
 
 The production **NO-GO stands.** Three of four blockers remain, and #1 and #2 are the two that
-turn a bad deploy into a long outage rather than a short one.
+turn a bad deploy into a long outage rather than a short one. Closing #3 removed the weakest of
+the four — it made the evidence reproducible, not the system operable.

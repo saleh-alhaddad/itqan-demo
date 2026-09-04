@@ -5,7 +5,7 @@
 `inspect` ✓ · `release` ✓ — all eight phases done and validated.
 
 **Production deployment is NO-GO and that is deliberate.** Not one gate on the *code* is
-open. Three of four *apparatus* blockers are — see "What is not done" below. Read that
+open, and CI is green. Three of four *apparatus* blockers are — see "What is not done" below. Read that
 section before deploying anything.
 
 ## Outcome
@@ -30,6 +30,12 @@ lands on:
 | `pnpm test:e2e` | **72 passed** |
 | `pnpm build` | exit 0 |
 | Schema drift | none (`prisma migrate diff --exit-code`) |
+
+**And independently reproduced in CI**, which is the part that matters — until run
+[`33915685839`](https://github.com/saleh-alhaddad/itqan-demo/actions/runs/33915685839)
+(`success`, 3m29s, commit `c8809e2`) these numbers had only ever come from one laptop. CI
+returned **210 / 210 / 210** unit+integration under UTC / America/Los_Angeles / Asia/Tokyo,
+**72** e2e, a clean drift check and a clean build.
 
 Scale: 16 API routes · 6 pages · 26 test files · 16 e2e specs · 2 migrations (both additive).
 
@@ -83,6 +89,7 @@ it is not invented under pressure.
 | | |
 |---|---|
 | **Dashboards / alerts** | **None exist.** This is blocker #1 |
+| **CI** | `.github/workflows/ci.yml` on `main` — every push and PR. A red run uploads the Playwright report as an artifact |
 | **Health probe** | `GET /api/health` — the entire signal surface today |
 | **Rollback (code)** | `git revert -m 1 23c9eb3` · one commit · under a minute |
 | **Rollback (schema)** | **No path.** Prisma emits no `down.sql`; `migrate reset` drops all data |
@@ -96,7 +103,7 @@ it is not invented under pressure.
 |---|---|---|
 | 1 | **No observability** | After a deploy nobody can answer "is it working?". The staged rollout in `release.md` has abort thresholds that are currently unmeasurable |
 | 2 | **No schema rollback path** | Safe *today* only because every migration is additive. The first column change ends that, silently |
-| 3 | **CI closed in code, never run** | `.github/workflows/ci.yml` on branch `chore/ci-pipeline` has **never executed**. Push it and watch it go green — a workflow that has not run is a hypothesis, not a safety net |
+| 3 | ~~No CI~~ — **CLOSED** | Run [`33915685839`](https://github.com/saleh-alhaddad/itqan-demo/actions/runs/33915685839) concluded `success`. `ci.yml` is on `main` and fires on every push and PR. Nothing to do |
 | 4 | **No deployment target** | `spec.md`: "No deployment target is assumed" |
 
 Accepted risks, decided knowingly:
