@@ -1,5 +1,6 @@
-import { ColumnView } from './ColumnView'
 import { AddColumn } from './AddColumn'
+import { DragContext } from './DragContext'
+import { BoardAnnouncer } from './BoardAnnouncer'
 import type { Board } from './types'
 
 /**
@@ -20,6 +21,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const board = initialBoard
 
   return (
+    <BoardAnnouncer>
     <div className="flex h-full flex-col" data-testid="board-view">
       <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
         <h1 className="truncate text-lg font-semibold">{board.name}</h1>
@@ -32,15 +34,9 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           <AddColumn boardId={board.id} variant="empty" />
         </div>
       ) : (
-        // Horizontal scroll here; each column scrolls vertically inside itself, so the page
-        // never scrolls in two directions at once.
-        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="flex h-full gap-4 p-4">
-            {board.columns.map((column) => <ColumnView key={column.id} column={column} />)}
-            <AddColumn boardId={board.id} />
-          </div>
-        </div>
+        <DragContext boardId={board.id} columns={board.columns} />
       )}
     </div>
+    </BoardAnnouncer>
   )
 }

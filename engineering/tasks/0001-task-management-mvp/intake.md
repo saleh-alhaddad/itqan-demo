@@ -346,3 +346,19 @@ Also:      writing that handler surfaced a security-relevant path with no test �
            `requireColumnAccess`, and a test proves it: mutation-checked by removing the
            check, which turns it red. Every READ was already boundary-safe; this was the
            first WRITE that could cross one.
+
+### R11 · construct/T10 · 2026-09-04 · TWO DEFECTS, BOTH CAUSED BY ADDING DRAG
+1. **The move announcement never survived the move.** The `aria-live` region lived inside
+   `MoveTaskMenu`, i.e. inside the card — and moving a card re-parents its React subtree, so
+   the region was destroyed by the action it existed to announce. Fixed with a board-level
+   `BoardAnnouncer` (context + one stable region above everything that moves).
+2. **Drag nested buttons inside a button.** Spreading `dragHandleProps` over the card
+   container adds `role="button"` and `tabindex="0"`, so the card button and the move menu
+   ended up inside a button — invalid markup, ambiguous to assistive technology, and it
+   broke every existing selector. Fixed with a dedicated pointer-only handle
+   (`aria-hidden`, `tabIndex -1`); keyboard users move cards through `MoveTaskMenu`.
+Worth keeping: the plan's build order paid off exactly as intended. The keyboard path was
+   built and proven BEFORE the drag library, so when drag broke the card's markup, the
+   regression was visible immediately against working tests rather than hidden in a board
+   that had never worked any other way.
+Both recorded as conventions in standards.md.

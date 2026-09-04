@@ -393,7 +393,7 @@ Shape:      `src/app/api/tasks/[taskId]/route.ts`, `src/components/board/MoveTas
             broken under React 19, dropping it is a `Status` change on one sub-step, not a
             redesign — the board is already fully operable without it.
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 11 — Due dates: classifier and badge
 Goal:       A due date can be set and cleared, and its urgency is legible without relying

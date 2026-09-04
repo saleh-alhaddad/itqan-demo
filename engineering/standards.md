@@ -41,6 +41,15 @@ Conventions:     established in T01 (greenfield — nothing to detect) · 2026-0
                    `tests/setup.ts` force-loads `.env.test`, so `pnpm test` can never
                    touch dev data. `docker-compose.yml` is the reproducible/CI equivalent
                    on :5433.
+  Live regions     An aria-live region must live ABOVE anything that moves. A region owned
+                   by a card is destroyed when the card is re-parented — by the very action
+                   it exists to announce. One board-level announcer, via context.
+                   · learned in T10 · 2026-09-04
+  Drag handles     Spread `dragHandleProps` on a DEDICATED handle, never the card container:
+                   on the container it adds role="button"/tabindex, nesting the card's own
+                   buttons inside a button. The keyboard path is the explicit move menu, so
+                   the handle is pointer-only (aria-hidden, tabIndex -1).
+                   · learned in T10 · 2026-09-04
   React state      NEVER copy a prop into `useState`. `useState(prop)` reads its argument
                    only on the first render, so the copy freezes at mount: a
                    `router.refresh()` fetches new data on the server, hands it down, and

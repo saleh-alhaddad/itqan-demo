@@ -142,3 +142,19 @@ The detail dialog opens over the board rather than navigating, so the board stay
 its scroll position survives. Radix supplies the focus trap and returns focus to the card that
 opened it — proven end to end, along with a card being reachable and openable by keyboard
 alone. Cards are real buttons, which is what makes that work without reimplementing it.
+
+## 2026-09-04 · T10 task move — keyboard first, then drag
+The explicit move menu was built and proven before any drag library, per the plan. It is an
+equal path, not a fallback: a keyboard-ONLY end-to-end test moves a card between columns
+using nothing but key presses, and would fail if a click were ever required. Moves are
+announced through a board-level live region.
+
+Drag arrived second, via `@hello-pangea/dnd` (the only candidate declaring React 19 support).
+Moves are optimistic and a rejection rolls the card back visibly with a reason — a silent
+revert would leave the user believing a move that never happened. `DragContext` drops its
+optimistic overlay by comparing previous props during render, rather than copying props into
+state (the freeze from T08).
+
+**Adding drag caused two defects, both fixed (R11):** the live region lived inside the card
+and was destroyed by the move it announced; and `dragHandleProps` on the card container put
+`role="button"` around the card's own buttons. There is now a dedicated pointer-only handle.
