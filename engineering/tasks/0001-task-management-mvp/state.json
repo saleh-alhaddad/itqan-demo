@@ -33,7 +33,7 @@
       "status": "in_progress",
       "validated": false,
       "artifact": null,
-      "note": "T01 DONE \u2014 all 4 acceptance criteria proven this run: (1) `pnpm build` exit 0 AND the built production server returned a Healthcheck row inserted directly via psql, on a free ephemeral port (:3000 is occupied by an unrelated app on this machine); (2) prisma CLI 7.10.0 and @prisma/client 7.10.0; (3) type:module + prisma-client generator with explicit output + generate exit 0; (4) `pnpm test` 2 collected/2 passed, `pnpm test:e2e` 2 collected/2 passed exit 0. The health test was mutation-checked: stubbing out the query turns it red. The plan's flagged Prisma7/Next16/Turbopack bundling break did NOT occur. Next: T02."
+      "note": "T01-T06 done (the spine). 50 integration tests green, e2e green, build exit 0. Every security claim mutation-checked: 12 mutants introduced, 12 killed. DEFERRED (intake R5): T04 acceptance #1 and T05 acceptance #3 are E2E criteria needing a page that T07/T15 supply \u2014 recorded, not marked done. Next slice: T07 (board read endpoint + board screen), which also closes both deferrals."
     },
     "verify": {
       "status": "todo",
@@ -60,12 +60,13 @@
     }
   },
   "open_items_for_resume": [
-    "IN PROGRESS: construct. T01 done. Next slice: T02 (schema, migration, factories). Task Status: lines in plan.md are the per-slice resume marker.",
+    "IN PROGRESS: construct. T01-T06 done. Next slice: T07 (board read endpoint + board screen). Task Status: lines in plan.md are the per-slice resume marker.",
     "RESOLVED 2026-09-04: git isolation. main now has baseline commit d4da6a1; branch task/0001-task-management-mvp created off it and is the working branch.",
     "RESOLVED 2026-09-04: I5 dense-integer ordering settled in plan.md as decision D1 \u2014 dense integers rewritten in one transaction, with NO unique(parentId, position) constraint; density asserted by test instead. Sparse/fractional keys recorded as the rejected alternative with a revisit trigger.",
     "OPEN: no password reset exists. Largest MVP product risk, accepted knowingly at the spec gate.",
     "SCHEDULED: harden must run before release (self-hosted credentials + SC7 enumeration oracle).",
-    "NOTE: `prisma` CLI npm 'latest' is 8.0.0-rc.12 \u2014 both prisma packages are pinned to 7.10.0 in package.json. Do not run `prisma@latest`."
+    "NOTE: `prisma` CLI npm 'latest' is 8.0.0-rc.12 \u2014 both prisma packages are pinned to 7.10.0 in package.json. Do not run `prisma@latest`.",
+    "DEFERRED: T04 acceptance #1 (signup redirect renders a board) and T05 acceptance #3 (signed-out redirect) \u2014 both need T07/T15's pages. See intake R5. verify must re-prove both."
   ],
   "halt_reason": null
 }
