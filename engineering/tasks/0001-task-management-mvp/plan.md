@@ -234,7 +234,7 @@ Shape:      `src/app/api/auth/signup/route.ts`, `src/app/(auth)/signup/page.tsx`
             The default columns are ordinary rows created here, not a constant the app
             treats as special (I3 stays true).
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 05 — Login, logout, and route protection
 Goal:       An existing user can get back in, leave, and cannot reach app routes signed out.
@@ -247,6 +247,8 @@ Acceptance: 1. Correct credentials set a session cookie and redirect to the boar
             2. Logout clears the session; the previously working session no longer grants
                access on the next request.
             3. An unauthenticated request to any `(app)` route redirects to `/login`.
+               — **DEFERRED to T07** (no `(app)` route exists yet; the guard itself is
+               built in `src/app/(app)/layout.tsx`; see intake R5).
             4. The login page renders **no** "forgot password" link (there is no reset flow;
                a dead link would be dishonest — `design.md`).
 Shape:      `src/app/api/auth/login/route.ts`, `logout/route.ts`,
@@ -257,7 +259,7 @@ Shape:      `src/app/api/auth/login/route.ts`, `logout/route.ts`,
             an anonymous surface and an authenticated one, and `harden` is tasked with
             reconciling the member-lookup side (spec Risks).
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 06 — Authorization funnel and uniform error contract
 Goal:       One place decides whether an actor may touch a board, and one place builds the
@@ -284,7 +286,7 @@ Shape:      `src/lib/auth/guard.ts`, `src/lib/api/errors.ts`.
             Guards throw a typed error caught by one route wrapper, so no handler
             hand-writes a 404.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 07 — Board read endpoint and board screen
 Goal:       A member can open a board and see its columns and cards, with all four states

@@ -251,3 +251,33 @@ Ruling:    Added `@prisma/adapter-pg@7.10.0` + `pg`; `src/lib/db.ts` constructs
 Why it is a ruling: T01's stated Goal — prove the Next 16 → Prisma 7 → Postgres path — is
            unchanged, and no other task's acceptance moves. This is the surprise T01 was
            ordered first to find; it cost one dependency instead of a mid-build redesign.
+
+### R5 · construct/T04+T05 · 2026-09-04 · DEFERRED ACCEPTANCE (plan ordering defect)
+Situation: Two approved acceptance criteria cannot be proven when their own task runs,
+           because each needs a page the plan assigns to a LATER task:
+           · T04 #1 — "submit signup; the redirect renders a board with >=1 column" needs
+             the board screen, which is T07.
+           · T05 #3 — "an unauthenticated request to any (app) route redirects to /login"
+             needs an (app) route to exist; the first are T07's board and T15's board list.
+Ruling:    Both are DEFERRED to the task that supplies the missing page, and recorded here
+           rather than silently marked done. Everything provable now HAS been proven:
+           · SC1's database half — user + team + OWNER membership + board + 3 dense columns,
+             asserted directly (T04 tests).
+           · SC2 in full — forcing a failure at column creation leaves zero user rows;
+             mutation-checked by removing the transaction, which turns the test red.
+           · The signed-out redirect exists structurally in `src/app/(app)/layout.tsx`;
+             only its end-to-end proof waits for a page to sit under it.
+Why flagged, not hidden: the fresh-eyes pass checked that each task's Consumes matched a
+           prior Produces, but did not check that each ACCEPTANCE criterion was provable
+           with only the prior tasks' output. That is a gap in the check, worth remembering
+           for the next plan.
+Status:    T07 and T15 must close these. Neither T04 nor T05 is marked fully validated
+           until they do; `verify` re-proves both before release.
+
+### R6 · construct/T04 · 2026-09-04 · RULING
+Situation: T06's Shape names `src/lib/api/errors.ts` as its Produces, but T04's signup route
+           needs a stable error `code` (its acceptance #5) before T06 runs.
+Ruling:    `errors.ts` was written during T04 and T06 built its guards on top, rather than
+           T04 hand-rolling an error shape for T06 to replace.
+Why:       plan.md's invariants section says "One `notFound()`" — a second error shape
+           existing even briefly is the thing that breaks SC5's byte-identity later.

@@ -47,3 +47,28 @@ round-tripped a value and compared the calendar day — and passed identically w
 column was a timestamp, because Prisma normalises the value on the way out. It now asserts
 the column type from `information_schema`, which was mutation-checked: switching the schema
 to a plain `DateTime` turns it red.
+
+## 2026-09-04 · T03–T06 auth spine — credentials, signup, login, and the authorization funnel
+- **T03** argon2id hashing (`@node-rs/argon2`) and DB-backed sessions. Logout deletes the
+  row, so revocation is real; a stateless sealed cookie could only be cleared client-side.
+  30-day rolling expiry, expired rows reaped on read. `readSession` takes `now` so expiry
+  is testable against fixed instants.
+- **T04** `provisionNewAccount` creates user + team + OWNER membership + board + three dense
+  columns in ONE transaction (SC2). `createBoardWithDefaultColumns` is extracted so T15's
+  board creation cannot drift from signup's.
+- **T05** Login gives a wrong password and an unknown email byte-identical 401s, and verifies
+  against a dummy hash when no user matched so the two paths take comparable time — an early
+  return would have been a timing oracle for the question the body refuses to answer. The
+  login page renders no "forgot password" link, because no reset flow exists.
+- **T06** The authorization funnel. Guards RETURN the fetched resource instead of answering
+  a boolean, so a handler cannot obtain a board without passing the check. Every refusal is
+  the same `NOT_FOUND` — including for a member who lacks OWNER, since a 403 would confirm
+  the team exists. `requireTaskAccess` walks task → column → board → team; there is no
+  denormalised `teamId`.
+
+Every security claim above was mutation-checked. Disabling revocation, dropping `httpOnly`,
+ignoring expiry, removing the transaction, dropping the membership predicate, skipping the
+OWNER check, and making the refusal distinguishable each turn the suite red.
+
+**Two acceptance criteria are deferred, not done** (intake R5): T04's signup-redirect E2E
+and T05's signed-out-redirect E2E both need a page that T07/T15 supply.
