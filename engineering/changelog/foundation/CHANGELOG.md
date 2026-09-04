@@ -125,3 +125,20 @@ and says it cannot be undone, in one place so the wording cannot drift.
 **Defect found (R9):** the board never updated after a mutation because `BoardView` copied
 its prop into `useState`, which reads its argument only on the first render. Rendering from
 props fixed it. The same freeze would have silently defeated T17's polling.
+
+## 2026-09-04 · T09 tasks — create, edit, delete, and the detail dialog
+Task endpoints are membership-scoped, append through the ordering funnel, and compact after
+a delete so no hole is left (I5). Only the title is required: everything else is added later
+from the dialog, so nothing stands between the user and capturing a thought. `null` and
+`undefined` are distinguished in the PATCH schema — `undefined` leaves a field alone, `null`
+clears it — because conflating them would make a due date impossible to clear (T11).
+
+**A move cannot cross a team boundary.** The destination column is authorised separately;
+without that check a member of one team could drop a task into another team's board. Every
+read was already boundary-safe, but this was the first write that could cross one. Tested and
+mutation-checked.
+
+The detail dialog opens over the board rather than navigating, so the board stays mounted and
+its scroll position survives. Radix supplies the focus trap and returns focus to the card that
+opened it — proven end to end, along with a card being reachable and openable by keyboard
+alone. Cards are real buttons, which is what makes that work without reimplementing it.

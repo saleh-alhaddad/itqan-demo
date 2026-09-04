@@ -1,5 +1,6 @@
 import { TaskCard } from './TaskCard'
 import { ColumnHeader } from './ColumnHeader'
+import { AddTask } from './AddTask'
 import type { BoardColumn } from './types'
 
 /**
@@ -24,6 +25,7 @@ export function ColumnView({ column }: { column: BoardColumn }) {
         ) : (
           column.tasks.map((task) => <TaskCard key={task.id} task={task} />)
         )}
+        <AddTask columnId={column.id} columnName={column.name} />
       </div>
     </section>
   )

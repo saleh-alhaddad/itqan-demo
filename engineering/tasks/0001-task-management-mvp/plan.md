@@ -357,7 +357,7 @@ Shape:      `src/app/api/columns/[columnId]/tasks/route.ts`,
             trap and return-focus behaviour come from Radix rather than being hand-rolled,
             which is the stated reason `design.md` chose this stack.
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 10 — Task move: pointer drag and an equal keyboard path
 Goal:       A card moves between and within columns by dragging **or** by an explicit

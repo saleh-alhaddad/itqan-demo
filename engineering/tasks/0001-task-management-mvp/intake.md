@@ -334,3 +334,15 @@ Fix:       render straight from props; `const board = initialBoard`. The specula
 Why it mattered beyond this slice: the same freeze would have defeated T17's poll silently.
            The board would have looked correct and simply never updated.
 Recorded:  as a convention in standards.md.
+
+### R10 · construct/T09 · 2026-09-04 · RULING
+Situation: T09's Shape names `PATCH /api/tasks/:id`, and T10's Shape names the same file for
+           the move. Building the endpoint twice would mean editing it twice.
+Ruling:    the PATCH handler was built once here, INCLUDING `columnId`/`position` handling.
+           T10 still owns the move: its UI (drag plus the equal keyboard path), SC3's
+           reload proof, the a11y announcement, and the optimistic rollback.
+Also:      writing that handler surfaced a security-relevant path with no test — moving a
+           task into a column in ANOTHER team. The destination now goes through
+           `requireColumnAccess`, and a test proves it: mutation-checked by removing the
+           check, which turns it red. Every READ was already boundary-safe; this was the
+           first WRITE that could cross one.
