@@ -6,11 +6,12 @@ import { prisma } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 /**
- * T01 walking skeleton: proves the Next 16 → Prisma 7 → Postgres path works end to end,
- * including in a production build. T02 replaces the Healthcheck model; this route is
- * kept as a liveness probe.
+ * Liveness probe. Unauthenticated by design, so it must never return application data —
+ * it answers "is the database reachable", nothing more.
  */
 export async function GET() {
-  const checks = await prisma.healthcheck.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
-  return NextResponse.json({ database: 'reachable', checks })
+  // A trivial round-trip to Postgres: proves the connection is live without exposing
+  // any application data through an unauthenticated endpoint.
+  await prisma.$queryRaw`SELECT 1`
+  return NextResponse.json({ database: 'reachable' })
 }

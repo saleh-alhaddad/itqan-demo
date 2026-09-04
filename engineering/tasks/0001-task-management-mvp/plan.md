@@ -175,7 +175,7 @@ Shape:      `prisma/schema.prisma`, `prisma/migrations/*`, `tests/factories.ts`.
             `onDelete: Cascade` is declared on every FK along the ownership chain now,
             so I7 is a schema property; T16 proves it rather than implementing it.
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 03 — Credential and session primitives
 Goal:       Password hashing and session cookies exist as tested primitives, before any

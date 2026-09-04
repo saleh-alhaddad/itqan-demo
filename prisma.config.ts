@@ -10,5 +10,9 @@ export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
   datasource: {
     url: process.env.DATABASE_URL!,
+    // Used by `prisma migrate diff --from-migrations`, which is the drift check that
+    // catches a schema.prisma edited without a matching migration. Throwaway database:
+    // Prisma resets it on every use.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 })
