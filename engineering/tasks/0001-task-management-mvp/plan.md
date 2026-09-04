@@ -208,7 +208,7 @@ Shape:      Uses `@node-rs/argon2` (native Rust bindings; no node-gyp build step
             accepted to close a finding `harden` is otherwise certain to raise here.
             Never log or return the token; it is a bearer credential.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 04 — Signup with atomic first-run provisioning
 Goal:       A new signup produces a complete, immediately usable account — or nothing at all.
