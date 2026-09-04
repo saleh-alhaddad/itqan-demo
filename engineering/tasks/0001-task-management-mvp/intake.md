@@ -362,3 +362,18 @@ Worth keeping: the plan's build order paid off exactly as intended. The keyboard
    regression was visible immediately against working tests rather than hidden in a board
    that had never worked any other way.
 Both recorded as conventions in standards.md.
+
+### R12 · construct/T10 · 2026-09-04 · DEFECT ONLY A SCREENSHOT COULD FIND
+Situation: every surface in the app rendered in the browser's default SERIF face. 91
+           integration tests, 23 e2e tests, lint and build were all green.
+Cause:     `src/app/globals.css` contained `--font-sans: var(--font-sans);` — a
+           self-referential custom property, which resolves to nothing. `create-next-app`
+           names its fonts `--font-geist-sans`; `shadcn init` wrote a rule expecting
+           `--font-sans`. Two generators, each internally consistent, disagreeing at the seam.
+Fix:       `--font-sans: var(--font-geist-sans)` (and `--font-heading` likewise). Also
+           replaced the scaffold's leftover "Create Next App" page title.
+Guard:     an e2e now asserts `--font-sans` resolves to a non-empty value and that the body
+           font is not a serif fallback.
+Worth keeping: **no functional assertion can see this class of defect.** Behaviour was
+           correct throughout. Rendering the app and LOOKING at it is a distinct verification
+           step from running its tests, and belongs in `verify`.

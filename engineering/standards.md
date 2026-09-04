@@ -7,6 +7,10 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Visual check:    Rendering the app and LOOKING at it is a separate step from running its
+                 tests. A self-referential CSS variable made every surface fall back to
+                 serif while 114 tests, lint and build stayed green — behaviour was correct
+                 the whole time. `verify` takes a screenshot.  · learned in T10 · 2026-09-04
 Proving set:     A slice is not green until ALL FOUR pass: `pnpm lint` · `pnpm test` ·
                  `pnpm test:e2e` · `pnpm build`. Lint is in the set because React 19's
                  `react-hooks/set-state-in-effect` caught a genuine architectural problem

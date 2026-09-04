@@ -129,3 +129,19 @@ test('the page never scrolls in both directions at once (design.md)', async ({ p
   const rail = page.getByTestId('board-view').locator('div.overflow-x-auto')
   await expect(rail).toHaveCount(1)
 })
+
+/**
+ * REGRESSION. `globals.css` shipped `--font-sans: var(--font-sans)` — a self-referential
+ * variable that resolved to nothing, so every surface silently fell back to the browser's
+ * default serif. No functional test could see it; a screenshot did. This asserts the
+ * variable actually resolves.
+ */
+test('the sans font stack actually resolves (no self-referential variable)', async ({ page }) => {
+  await page.goto('/login')
+  const fontVar = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim(),
+  )
+  expect(fontVar).not.toBe('')
+  const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily)
+  expect(bodyFont.toLowerCase()).not.toMatch(/^(times|serif)/)
+})

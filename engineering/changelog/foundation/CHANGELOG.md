@@ -158,3 +158,13 @@ state (the freeze from T08).
 **Adding drag caused two defects, both fixed (R11):** the live region lived inside the card
 and was destroyed by the move it announced; and `dragHandleProps` on the card container put
 `role="button"` around the card's own buttons. There is now a dedicated pointer-only handle.
+
+### 2026-09-04 · T10 follow-up — the whole app was rendering in serif
+`globals.css` shipped `--font-sans: var(--font-sans)`, a self-referential custom property
+that resolves to nothing, so every surface fell back to the browser's default serif.
+`create-next-app` names its fonts `--font-geist-sans`; `shadcn init` wrote a rule expecting
+`--font-sans`. Both generators were internally consistent and disagreed at the seam.
+
+All 114 tests, lint and the build were green throughout — behaviour was never wrong. Only a
+screenshot showed it. An e2e now asserts the variable resolves and the body font is not a
+serif fallback, and `standards.md` records that a visual check is its own verification step.
