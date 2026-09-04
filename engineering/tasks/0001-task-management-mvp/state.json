@@ -42,11 +42,11 @@
       "note": "PASS after finding and fixing 3 defects. Proving set re-run fresh: lint 0 \u00b7 178 unit+integration (green under LA and Tokyo) \u00b7 61 e2e no flakes \u00b7 build 0. Database pack: migration up 0.77s/10 tables; NO down path exists (finding). Prod-shaped volume 480 tasks: polled board query p50 4.4ms, 4 SQL statements, no N+1. Browser gates: zero console errors AND warnings across the core flow, every control named, keyboard completable. 18 adversarial probes: 16/18 first run, 18/18 after fixes, 3 consecutive runs, zero server errors. DEFECTS FIXED: (1) null byte in any text field -> 500 (P2039), fixed with one storable-text rule across 9 routes; (2) concurrent member removal -> 500 (P2025), fixed with idempotent deleteMany; (3) concurrent task moves -> 500 (P2034 write conflict), fixed with a bounded retry \u2014 the most consequential, since concurrent dragging is the core collaborative action. Each root-caused before any fix and pinned with a failing test first."
     },
     "harden": {
-      "status": "todo",
-      "validated": false,
+      "status": "done",
+      "validated": true,
       "approved": false,
-      "artifact": null,
-      "note": "SCHEDULED, not optional: self-hosted email+password auth is a security-sensitive surface (hashing, session fixation, login brute-force, and the member-lookup enumeration oracle in SC7). Must run before any release."
+      "artifact": "security-review.md",
+      "note": "Audit complete, NOT clean: 1 Critical, 1 High, 4 Medium, 4 Info. approved:false because Critical/High are unresolved and must be fixed or explicitly accepted before release. C1 = login has no rate limiting/lockout: DEMONSTRATED 100 attempts in 0.7s (~138/s), zero 429s, no lock after 100 failures. H1 = signup discloses account existence (409 EMAIL_TAKEN), anonymous, which makes C1 targeted. Both change an auth flow, which security.md says needs explicit human approval before building \u2014 raised, not unilaterally fixed. RESOLVED with evidence: argon2 params are exactly the OWASP minimum (m=19456,t=2,p=1) so the spec's deferred concern needs no change; all 3 dependency advisories are unreachable (0 files in the production build, postgres datasource, prisma is a devDependency); Next 16.3.4 is patched for the Aug 2026 RCEs. SC7 enumeration oracle reconciled: acceptable at its narrower reach (team owner) while signup is the same class at anonymous reach."
     },
     "inspect": {
       "status": "todo",
@@ -61,13 +61,12 @@
     }
   },
   "open_items_for_resume": [
-    "NEXT PHASE: harden \u2014 SCHEDULED AND NOT OPTIONAL before release. Self-hosted credentials; SC7 enumeration oracle; argon2 cost parameters still at library defaults; login rate limiting/lockout deferred to it by the spec.",
-    "THEN: inspect, then release (GO/NO-GO gate).",
-    "FINDING (verify): no schema rollback path \u2014 Prisma generates no down.sql. Harmless for migration #1 (rollback = empty database); release needs a plan before migration #2.",
-    "FINDING (verify): the polled board payload is 122 KB on a 360-task board (p50 4.4ms, 4 SQL statements). Within MVP tolerance; spec.md names the changed-since mitigation if poll volume grows. Measured, not guessed.",
-    "KNOWN MVP RISK, ACCEPTED: no password reset exists.",
-    "CI SHOULD PIN NODE 24 LTS \u2014 Prisma 7 warns on the local Node 25.",
-    "Scratch DB itqan_verify holds the volume fixture so the measurement can be repeated."
+    "BLOCKING RELEASE: harden found 1 Critical (C1 no login rate limiting \u2014 demonstrated 138 attempts/s, no lockout) and 1 High (H1 signup account enumeration). Must be fixed or explicitly accepted by the user before release. Both touch an auth flow, which needs explicit approval before building.",
+    "Medium findings for the same decision: M1 no security headers, M2 CSRF is SameSite-only, M3 shadcn CLI is a runtime dependency, M4 sessions never expire while used and cannot be revoked en masse.",
+    "NEXT PHASE after the C1/H1 decision: inspect, then release (GO/NO-GO).",
+    "FINDING (verify): no schema rollback path \u2014 needed before migration #2.",
+    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms). Measured, within tolerance.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset \u2014 which also makes a stolen account unrecoverable (see C1)."
   ],
   "halt_reason": null
 }
