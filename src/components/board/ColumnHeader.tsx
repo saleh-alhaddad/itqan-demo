@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -26,12 +27,9 @@ export function ColumnHeader({ column, onAddTask }: { column: BoardColumn; onAdd
     const trimmed = name.trim()
     setRenaming(false)
     if (!trimmed || trimmed === column.name) return
-    await fetch(`/api/columns/${column.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
-    router.refresh()
+    const res = await mutate(`/api/columns/${column.id}`, { method: 'PATCH', body: { name: trimmed } })
+    // Only repaint on success: refreshing after a refusal silently restores the old name.
+    if (res.ok) router.refresh()
   }
 
   return (
@@ -94,9 +92,9 @@ export function ColumnHeader({ column, onAddTask }: { column: BoardColumn; onAdd
             : `${taskCount} ${taskCount === 1 ? 'task' : 'tasks'} in this column will be deleted too.`
         }
         onConfirm={async () => {
-          await fetch(`/api/columns/${column.id}`, { method: 'DELETE' })
+          const res = await mutate(`/api/columns/${column.id}`, { method: 'DELETE' })
           setConfirming(false)
-          router.refresh()
+          if (res.ok) router.refresh()
         }}
       />
     </header>

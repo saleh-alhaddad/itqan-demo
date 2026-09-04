@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { MoveHorizontal } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -35,11 +36,13 @@ export function MoveTaskMenu({
   const siblings = columns.find((c) => c.id === task.columnId)?.tasks ?? []
 
   async function move(body: Record<string, unknown>, message: string) {
-    await fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    const res = await mutate(`/api/tasks/${task.id}`, { method: 'PATCH', body })
+    if (!res.ok) {
+      // Announcing a move that did not happen is worse than announcing nothing: a screen
+      // reader user would be told the card is somewhere it is not.
+      announce(`Could not move “${task.title}”. ${res.message}`)
+      return
+    }
     announce(message)
     router.refresh()
   }

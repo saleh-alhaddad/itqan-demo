@@ -4,7 +4,7 @@ import { requiredText, storableText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireColumnAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
-import { appendPosition } from '@/lib/ordering'
+import { appendWithin } from '@/lib/ordering'
 
 /**
  * Only the title is required. A card the user cannot name is not a card, but everything
@@ -26,18 +26,21 @@ export async function POST(request: Request, ctx: { params: Promise<{ columnId: 
     const parsed = createTaskSchema.safeParse(await request.json().catch(() => null))
     if (!parsed.success) return apiError('INVALID_INPUT', 400, 'A task needs a title.')
 
-    const position = await appendPosition(prisma, 'task', { columnId })
-    const task = await prisma.task.create({
-      data: {
-        columnId,
-        title: parsed.data.title,
-        description: parsed.data.description ?? null,
-        // A plain calendar date: parsed as UTC midnight so the DATE column stores the day
-        // the user picked, not the day it happened to be in the server's timezone.
-        dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T00:00:00Z`) : null,
-        position,
-      },
-    })
+    // The index is computed under the scope lock, inside the same transaction as the insert:
+    // two simultaneous creates previously both read the same end-of-list and wrote it.
+    const task = await appendWithin(prisma, 'task', { columnId }, (position, tx) =>
+      tx.task.create({
+        data: {
+          columnId,
+          title: parsed.data.title,
+          description: parsed.data.description ?? null,
+          // A plain calendar date: parsed as UTC midnight so the DATE column stores the day
+          // the user picked, not the day it happened to be in the server's timezone.
+          dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T00:00:00Z`) : null,
+          position,
+        },
+      }),
+    )
 
     return NextResponse.json(task, { status: 201 })
   })

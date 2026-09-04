@@ -195,3 +195,42 @@ Deliberate:   A request with neither Origin nor Referer is ALLOWED. Browsers alw
               requests would break curl, server-side callers and the test suite without
               stopping the attack.
 Status:       accepted
+
+## Ordering is serialised with a per-parent advisory lock · 2026-09-04
+Decision:     Every write to `position` happens inside `lib/ordering.ts`, in a transaction
+              that first takes `pg_advisory_xact_lock` on the parent board or column. Two
+              scopes are locked in sorted key order. `appendPosition` returns `max + 1`.
+Why:          D1 chose dense integers with no unique constraint, which puts the entire
+              guarantee in application code — and a review found that premise broken. Three
+              concurrent moves produced positions `[0,0,0]`; five concurrent creates produced
+              `[0,0,0,1,2]`. Two rows sharing a sort key have no defined order, so cards
+              visibly swap between polls.
+              A transaction alone does not fix this. Two callers can both read `max = 4` and
+              both write `5` without ever conflicting, because they touch different rows and
+              nothing serialises them. The advisory lock is what makes ordering work on one
+              parent serial — the actual requirement behind dense integers.
+              Sorted lock order matters: locking in call order lets a move A→B and a
+              simultaneous B→A each hold one lock and wait for the other.
+              `count()` was replaced with `max + 1` because the two agree only while a run is
+              dense, so `count()` collided the instant a gap existed — it returned 3 for a
+              column holding [0,1,3].
+Alternatives: A unique constraint on (parent, position) — rejected by D1, and still rejected:
+              dense shifts collide transiently. Sparse or fractional keys — the recorded
+              revisit trigger for D1, and a larger change than this defect warranted.
+Status:       accepted
+Guarded by:   tests/integration/ordering-concurrency.test.ts — mutation-checked by removing
+              the lock, which fails 3 of 7 on every run.
+
+## Client mutations report their own failure · 2026-09-04
+Decision:     Every client-side state change goes through `lib/client/mutate.ts`, which
+              inspects the response, raises the server's `error.message` as a toast, and
+              returns `ok` so the caller refreshes only on success.
+Why:          Nine of eleven call sites fired a request and called `router.refresh()` without
+              looking at the result, so a refusal repainted the old value and said nothing —
+              the user's edit simply vanished. `design.md` already required the opposite; one
+              component honoured it. Hardening made this materially worse by adding 429 and
+              403 responses that real users will hit.
+Notable:      A refused MOVE announces the failure rather than the move. Announcing a move
+              that did not happen tells a screen-reader user the card is somewhere it is not,
+              which is worse than saying nothing at all.
+Status:       accepted

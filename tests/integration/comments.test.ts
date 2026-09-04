@@ -65,10 +65,32 @@ describe('T14 — posting and reading comments', () => {
     await comment(otherToken, 'second')
     signedInAs(ownerToken)
     const body = await (await listComments(req('GET'), taskCtx())).json()
-    expect(body.map((c: { body: string }) => c.body)).toEqual(['first', 'second'])
-    expect(body[0].author.name).toBe(author.name)
+    expect(body.comments.map((c: { body: string }) => c.body)).toEqual(['first', 'second'])
+    expect(body.comments[0].author.name).toBe(author.name)
+    expect(body.total).toBe(2)
+    expect(body.olderHidden).toBe(0)
     // A comment payload must never carry the author's credentials.
     expect(JSON.stringify(body)).not.toContain('passwordHash')
+  })
+
+  it('H2: the list is BOUNDED — a busy card returns a page, not everything', async () => {
+    // Found unbounded in review: a task with thousands of comments returned all of them,
+    // undoing the reason the board ships counts rather than bodies.
+    const rows = Array.from({ length: 130 }, (_, i) => ({
+      taskId, authorId: author.id, body: `bulk-${String(i).padStart(3, '0')}`,
+      createdAt: new Date(Date.now() + i * 1000),
+    }))
+    await prisma.comment.createMany({ data: rows })
+
+    signedInAs(ownerToken)
+    const body = await (await listComments(req('GET'), taskCtx())).json()
+
+    expect(body.comments.length).toBe(100)
+    expect(body.total).toBe(130)
+    expect(body.olderHidden).toBe(30)
+    // It keeps the NEWEST page, presented oldest-first for reading.
+    expect(body.comments[0].body).toBe('bulk-030')
+    expect(body.comments[99].body).toBe('bulk-129')
   })
 
   it('stores the body verbatim — no markdown, no HTML interpretation', async () => {

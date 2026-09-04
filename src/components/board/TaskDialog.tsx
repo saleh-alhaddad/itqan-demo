@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,16 +50,13 @@ export function TaskDialog({
 
   async function save(fields: Record<string, unknown>) {
     setSaving(true)
-    const request = fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(fields),
-    }).finally(() => setSaving(false))
+    const request = mutate(`/api/tasks/${task.id}`, { method: 'PATCH', body: fields })
+      .finally(() => setSaving(false))
 
     // Chained, not replaced: two fields blurred in quick succession must BOTH be waited on.
     pending.current = pending.current.then(() => request, () => request)
-    await request
-    router.refresh()
+    const res = await request
+    if (res.ok) router.refresh()
   }
 
   /** Closing waits for anything still saving; opening is immediate. */
@@ -114,13 +112,11 @@ export function TaskDialog({
                 disabled={saving}
                 onChange={async (userIds) => {
                   setSaving(true)
-                  await fetch(`/api/tasks/${task.id}/assignees`, {
-                    method: 'PUT',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ userIds }),
+                  const res = await mutate(`/api/tasks/${task.id}/assignees`, {
+                    method: 'PUT', body: { userIds },
                   })
                   setSaving(false)
-                  router.refresh()
+                  if (res.ok) router.refresh()
                 }}
               />
             </div>
@@ -184,8 +180,9 @@ export function TaskDialog({
           ? `${task.commentCount} ${task.commentCount === 1 ? 'comment' : 'comments'} will be deleted too.`
           : undefined}
         onConfirm={async () => {
-          await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
+          const res = await mutate(`/api/tasks/${task.id}`, { method: 'DELETE' })
           setConfirming(false)
+          if (!res.ok) return
           onOpenChange(false)
           router.refresh()
         }}

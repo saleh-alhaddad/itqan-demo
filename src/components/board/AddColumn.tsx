@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,14 +21,10 @@ export function AddColumn({ boardId, variant = 'rail' }: { boardId: string; vari
     const trimmed = name.trim()
     if (!trimmed) { setOpen(false); return }
     setPending(true)
-    await fetch(`/api/boards/${boardId}/columns`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
+    const res = await mutate(`/api/boards/${boardId}/columns`, { method: 'POST', body: { name: trimmed } })
     setPending(false)
     setOpen(false)
-    router.refresh()
+    if (res.ok) router.refresh()
   }
 
   if (open) {

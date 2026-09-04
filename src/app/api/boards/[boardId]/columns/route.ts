@@ -4,7 +4,7 @@ import { requiredText } from '@/lib/api/validation'
 import { prisma } from '@/lib/db'
 import { requireUser, requireBoardAccess } from '@/lib/auth/guard'
 import { handleErrors, apiError } from '@/lib/api/errors'
-import { appendPosition } from '@/lib/ordering'
+import { appendWithin } from '@/lib/ordering'
 
 const createColumnSchema = z.object({ name: requiredText(100) })
 
@@ -19,9 +19,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ boardId: s
     const parsed = createColumnSchema.safeParse(await request.json().catch(() => null))
     if (!parsed.success) return apiError('INVALID_INPUT', 400, 'A column needs a name.')
 
-    // Append via the ordering funnel, so "next position" has one definition (I5/D1).
-    const position = await appendPosition(prisma, 'column', { boardId })
-    const column = await prisma.column.create({ data: { boardId, name: parsed.data.name, position } })
+    // Append via the ordering funnel, so "next position" has one definition (I5/D1) and is
+    // computed under the scope lock rather than racing another create.
+    const column = await appendWithin(prisma, 'column', { boardId }, (position, tx) =>
+      tx.column.create({ data: { boardId, name: parsed.data.name, position } }),
+    )
 
     return NextResponse.json(column, { status: 201 })
   })

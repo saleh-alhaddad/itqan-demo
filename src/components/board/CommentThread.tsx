@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -34,12 +35,16 @@ export function CommentThread({
 }) {
   const router = useRouter()
   const [comments, setComments] = useState<Comment[] | null>(null)
+  const [olderHidden, setOlderHidden] = useState(0)
   const [pending, setPending] = useState(false)
   const [confirming, setConfirming] = useState<Comment | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/tasks/${taskId}/comments`, { cache: 'no-store' })
-    if (res.ok) setComments((await res.json()) as Comment[])
+    if (!res.ok) return
+    const payload = (await res.json()) as { comments: Comment[]; olderHidden: number }
+    setComments(payload.comments)
+    setOlderHidden(payload.olderHidden)
   }, [taskId])
 
   /**
@@ -60,7 +65,12 @@ export function CommentThread({
 
     fetch(`/api/tasks/${taskId}/comments`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { if (!cancelled && data) setComments(data as Comment[]) })
+      .then((data) => {
+        if (cancelled || !data) return
+        const payload = data as { comments: Comment[]; olderHidden: number }
+        setComments(payload.comments)
+        setOlderHidden(payload.olderHidden)
+      })
       .catch(() => { /* a failed load leaves the thread showing its previous state */ })
 
     return () => { cancelled = true }
@@ -73,12 +83,9 @@ export function CommentThread({
     if (!body) return
 
     setPending(true)
-    await fetch(`/api/tasks/${taskId}/comments`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ body }),
-    })
+    const res = await mutate(`/api/tasks/${taskId}/comments`, { method: 'POST', body: { body } })
     setPending(false)
+    if (!res.ok) return   // keep what they typed, so it is not lost to a refusal
     form.reset()
     await load()
     router.refresh()   // the card's comment count lives on the board payload
@@ -96,6 +103,11 @@ export function CommentThread({
         <p className="text-muted-foreground text-xs">No comments yet.</p>
       ) : (
         <ul className="space-y-3" data-testid="comment-list">
+          {olderHidden > 0 ? (
+            <li className="text-muted-foreground text-xs" data-testid="older-hidden">
+              {olderHidden} older {olderHidden === 1 ? 'comment is' : 'comments are'} not shown.
+            </li>
+          ) : null}
           {comments.map((c) => {
             // Expressed once, matching the server rule exactly (SC6).
             const mayDelete = c.authorId === viewerId || viewerIsOwner
@@ -140,8 +152,9 @@ export function CommentThread({
         title="Delete this comment?"
         onConfirm={async () => {
           if (!confirming) return
-          await fetch(`/api/comments/${confirming.id}`, { method: 'DELETE' })
+          const res = await mutate(`/api/comments/${confirming.id}`, { method: 'DELETE' })
           setConfirming(null)
+          if (!res.ok) return
           await load()
           router.refresh()
         }}

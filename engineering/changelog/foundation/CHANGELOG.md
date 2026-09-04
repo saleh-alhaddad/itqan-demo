@@ -283,3 +283,23 @@ flake, a different test each run. Closing now waits for in-flight saves.
 endpoint existed and no UI called it. There is now an account menu on both authenticated
 surfaces — and with no password reset in this MVP, revoking every session is the only
 recovery a person has if they think a cookie was stolen.
+
+## 2026-09-04 · inspect — 3 Critical + 2 High found and closed in one round
+The three Criticals were one defect: `position` was written outside the ordering funnel, in
+the cross-column move and in both create paths. The funnel's own comment stated the premise
+("this is the ONLY code that writes position") precisely enough that its violation was
+findable — a vaguer comment would have hidden it.
+
+Every ordering write now takes a per-parent advisory lock inside one transaction. A
+transaction alone was never enough: two callers can both read `max = 4` and both write `5`
+without conflicting, because they touch different rows. `appendPosition` returns `max + 1`
+rather than `count()`, which collided the moment a run had a gap. `moveAcross()` performs the
+reparent and both densifies in a single transaction, as the spec required all along.
+
+Writing the tests found more than the review had: five concurrent task creates produced
+`[0,0,0,1,2]`. Both create paths now append through the funnel.
+
+All eleven client mutations go through one helper that surfaces the server's message, so a
+refusal is reported rather than silently repainted as the old value — including a refused
+move, which now announces the failure and never the move. The comment list is bounded to the
+newest 100 with an explicit count of what is not shown.

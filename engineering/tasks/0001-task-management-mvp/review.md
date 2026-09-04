@@ -166,3 +166,73 @@ checks added in `harden`.
 The reassuring part: the codebase's own documented invariant is what exposed C1. The comment
 in `ordering.ts` stated the premise precisely enough that its violation was findable — a
 weaker comment would have hidden it.
+
+
+---
+
+# Round 2 — all seven findings closed · 2026-09-04
+
+Fixes routed through `construct` → `verify`; only the changed part re-reviewed, per the fix
+loop. One round, not three.
+
+### C1 / C2 / C3 — closed by one structural change
+`lib/ordering.ts` is now genuinely the only writer of `position`, and the grep that found the
+second path returns nothing:
+
+```
+direct position writes outside ordering.ts:   (none)
+```
+
+Two things hold that line now:
+
+1. **Every ordering write takes a Postgres advisory lock on its parent** (`pg_advisory_xact_lock`)
+   and does its reads and writes in one transaction. A transaction alone was never enough —
+   two callers can both read `max = 4` and both write `5` without conflicting, because they
+   touch *different rows*, so no serialization failure fires. The lock makes ordering work on
+   one board or column serial, which is the guarantee dense integers actually need. It
+   releases at commit or rollback, so no path can leak one. Two scopes are locked in **sorted
+   key order**, or a move A→B racing B→A would deadlock.
+2. **`appendPosition` returns `max + 1`, never `count()`** — those agree only while a run is
+   dense, which is exactly the condition that had failed.
+
+`moveAcross()` performs the reparent, the destination densify and the source densify in a
+single transaction, satisfying `spec.md`'s all-or-nothing requirement.
+
+**The tests found more than the review had.** Writing them up revealed the *create* paths
+carried the same defect: five simultaneous task creates produced `[0,0,0,1,2]`. Both create
+routes now append through the funnel under the lock.
+
+Mutation-checked: removing the advisory lock fails **3 of 7** concurrency tests, on all three
+runs. The lock is load-bearing, not decorative.
+
+### H1 — closed
+All eleven client mutations go through `lib/client/mutate.ts`, which inspects the response,
+raises the server's own message as a toast, and returns `ok` so callers only repaint on
+success. Four end-to-end tests refuse a request the way the throttle and origin check now do,
+and assert the user is told:
+
+- a refused rename shows *"Too many attempts. Try again in 4 seconds."*
+- a refused create shows the origin message and adds no card
+- a refused move **announces the failure and never the move** — announcing a move that did not
+  happen would tell a screen-reader user the card is somewhere it is not
+- a refused sign-out **stays on the board** rather than landing on `/login` while the session
+  is still live, which is the most misleading outcome available for that particular action
+
+`TeamSettings`' blocking `window.alert` went with it. `DragContext` keeps its bespoke
+optimistic rollback — it is the pattern `design.md` names, and the one the rest now follow.
+
+### H2 — closed
+The comment list returns the newest 100, presented oldest-first, with `total` and
+`olderHidden`. The thread states *"N older comments are not shown"* rather than presenting a
+partial thread as though it were whole.
+
+### S1 / S2 — closed
+`board-list.test.ts` now asserts the team's identity instead of `toBeDefined()`, which passed
+for any truthy object. `retryOnWriteConflict` is private again, its only external caller
+having been the direct `position` write that C1 removed.
+
+## Verdict after round 2
+
+**0 Critical, 0 High, 0 Suggestions — every finding in this review is closed.**
+
+Proving set: `lint` 0 · **210** unit and integration · **72** end-to-end · `build` 0.

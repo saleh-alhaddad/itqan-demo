@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,15 +17,13 @@ export function CreateBoard({ teamId, teamName }: { teamId: string; teamName: st
     const trimmed = name.trim()
     if (!trimmed) { setOpen(false); return }
     setPending(true)
-    const res = await fetch(`/api/teams/${teamId}/boards`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
+    const res = await mutate<{ id: string }>(`/api/teams/${teamId}/boards`, {
+      method: 'POST', body: { name: trimmed },
     })
     setPending(false)
     setOpen(false)
     if (res.ok) {
-      const board = (await res.json()) as { id: string }
+      const board = res.data
       // Straight into the new board: it already has its columns, so there is nothing to set up.
       router.push(`/boards/${board.id}`)
     }

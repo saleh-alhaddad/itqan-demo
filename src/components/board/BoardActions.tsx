@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -28,12 +29,8 @@ export function BoardActions({
     const trimmed = next.trim()
     setRenaming(false)
     if (!trimmed || trimmed === name) return
-    await fetch(`/api/boards/${boardId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
-    router.refresh()
+    const res = await mutate(`/api/boards/${boardId}`, { method: 'PATCH', body: { name: trimmed } })
+    if (res.ok) router.refresh()
   }
 
   return (
@@ -75,7 +72,7 @@ export function BoardActions({
         }
         confirmLabel="Delete board"
         onConfirm={async () => {
-          const res = await fetch(`/api/boards/${boardId}`, { method: 'DELETE' })
+          const res = await mutate(`/api/boards/${boardId}`, { method: 'DELETE' })
           setConfirming(false)
           if (res.ok) router.push('/boards')
         }}

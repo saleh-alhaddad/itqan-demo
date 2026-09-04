@@ -1,4 +1,5 @@
 import { requireUserOrRedirect } from '@/lib/auth/guard'
+import { Toaster } from '@/components/ui/sonner'
 
 /**
  * Every route in the (app) group is behind this layout, so authentication is structural
@@ -10,5 +11,11 @@ import { requireUserOrRedirect } from '@/lib/auth/guard'
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await requireUserOrRedirect()
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {/* Where a refused mutation says what did not happen (design.md). */}
+      <Toaster position="bottom-right" />
+    </>
+  )
 }

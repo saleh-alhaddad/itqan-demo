@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,31 +38,24 @@ export function TeamSettings({
     setAddError(null)
     setAddPending(true)
 
-    const res = await fetch(`/api/teams/${team.id}/members`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
+    const res = await mutate(`/api/teams/${team.id}/members`, { method: 'POST', body: { email } })
     setAddPending(false)
 
     if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
-      // SC7: the miss is stated explicitly, beneath the field, and explains what to do.
-      setAddError(body?.error?.message ?? 'Could not add that person.')
+      // SC7: the miss is stated explicitly BENEATH THE FIELD, where the person is looking,
+      // as well as in the toast that `mutate` raises.
+      setAddError(res.message)
       return
     }
     form.reset()
     router.refresh()
   }
 
-  async function call(path: string, init: RequestInit) {
-    const res = await fetch(path, init)
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
-      // A refusal names what did not happen, rather than failing silently.
-      window.alert(body?.error?.message ?? 'That did not work.')
-      return false
-    }
+  async function call(path: string, init: Omit<RequestInit, 'body'> & { body?: unknown }) {
+    // `mutate` raises the toast; a blocking window.alert was both worse to read and
+    // impossible to style with the rest of the product.
+    const res = await mutate(path, init)
+    if (!res.ok) return false
     router.refresh()
     return true
   }
@@ -92,11 +86,7 @@ export function TeamSettings({
             onBlur={(e) => {
               const name = e.currentTarget.value.trim()
               if (name && name !== team.name) {
-                void call(`/api/teams/${team.id}`, {
-                  method: 'PATCH',
-                  headers: { 'content-type': 'application/json' },
-                  body: JSON.stringify({ name }),
-                })
+                void call(`/api/teams/${team.id}`, { method: 'PATCH', body: { name } })
               }
             }}
           />
@@ -119,9 +109,7 @@ export function TeamSettings({
                     <Button
                       variant="ghost" size="sm"
                       onClick={() => void call(`/api/teams/${team.id}/members/${user.id}`, {
-                        method: 'PATCH',
-                        headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ role: role === 'OWNER' ? 'MEMBER' : 'OWNER' }),
+                        method: 'PATCH', body: { role: role === 'OWNER' ? 'MEMBER' : 'OWNER' },
                       })}
                     >
                       {role === 'OWNER' ? 'Make member' : 'Make owner'}
@@ -179,7 +167,7 @@ export function TeamSettings({
         consequence="Every board in this team, with all their tasks and comments, will be deleted."
         confirmLabel="Delete team"
         onConfirm={async () => {
-          const res = await fetch(`/api/teams/${team.id}`, { method: 'DELETE' })
+          const res = await mutate(`/api/teams/${team.id}`, { method: 'DELETE' })
           setConfirmDelete(false)
           if (res.ok) router.push('/boards')
         }}

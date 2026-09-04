@@ -14,7 +14,9 @@ describe('listBoardsFor — the destination a returning user lands on', () => {
 
     const teams = await listBoardsFor(user.id)
     const alpha = teams.find((t) => t.id === team.id)
-    expect(alpha).toBeDefined()
+    // Asserting the team's identity rather than merely that something was found: the old
+    // `toBeDefined()` passed for any truthy object and contributed nothing.
+    expect(alpha?.name).toBe('Alpha')
     expect(alpha!.role).toBe('OWNER')
     expect(alpha!.boards.map((b) => b.name).sort()).toEqual(['Bugs', 'Roadmap'])
   })

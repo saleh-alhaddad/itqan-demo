@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { LogOut, ShieldOff } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -22,12 +23,10 @@ export function AccountMenu({ name }: { name: string }) {
   const [confirmAll, setConfirmAll] = useState(false)
 
   async function signOut(everywhere: boolean) {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ everywhere }),
-    })
-    router.push('/login')
+    const res = await mutate('/api/auth/logout', { method: 'POST', body: { everywhere } })
+    // Navigating to /login after a failed logout would look signed out while the session
+    // is still live — the most misleading possible outcome for this particular action.
+    if (res.ok) router.push('/login')
   }
 
   return (

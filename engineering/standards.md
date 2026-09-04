@@ -7,6 +7,14 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Ordering writes:  ONLY `lib/ordering.ts` may write `position`, and every such write holds a
+                 per-parent advisory lock inside its transaction. A transaction alone does
+                 not serialise callers that touch different rows. Use `max + 1`, never
+                 `count()` — they diverge the moment a run has a gap.
+                 · learned in inspect · 2026-09-04
+Client mutations: Never `await fetch(...)` then `router.refresh()`. Use `lib/client/mutate.ts`
+                 so a refusal is shown rather than silently repainted as the old value.
+                 · learned in inspect · 2026-09-04
 Test isolation:  State that PERSISTS in the test database between runs (throttle buckets,
                  counters) needs a key unique per test AND per run — a full timestamp plus
                  randomness, never a small modulus. Two attempts at this failed

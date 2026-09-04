@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { mutate } from '@/lib/client/mutate'
 import { Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
@@ -26,12 +27,8 @@ export function AddTask({
     const trimmed = title.trim()
     setOpen(false)
     if (!trimmed) return
-    await fetch(`/api/columns/${columnId}/tasks`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: trimmed }),
-    })
-    router.refresh()
+    const res = await mutate(`/api/columns/${columnId}/tasks`, { method: 'POST', body: { title: trimmed } })
+    if (res.ok) router.refresh()
   }
 
   if (open) {
