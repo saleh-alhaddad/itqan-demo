@@ -335,7 +335,7 @@ Shape:      `src/app/api/boards/[boardId]/columns/route.ts`,
             reused by T15/T16; it takes the count/name as arguments rather than each caller
             writing its own copy.
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 09 — Tasks: create, edit, delete, and the detail dialog
 Goal:       A card can be created, opened, edited, and deleted without leaving the board.

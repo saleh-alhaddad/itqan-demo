@@ -41,6 +41,11 @@ Conventions:     established in T01 (greenfield — nothing to detect) · 2026-0
                    `tests/setup.ts` force-loads `.env.test`, so `pnpm test` can never
                    touch dev data. `docker-compose.yml` is the reproducible/CI equivalent
                    on :5433.
+  React state      NEVER copy a prop into `useState`. `useState(prop)` reads its argument
+                   only on the first render, so the copy freezes at mount: a
+                   `router.refresh()` fetches new data on the server, hands it down, and
+                   nothing changes on screen. Render from props; hold state only for values
+                   the client actually owns.  · learned in T08 · 2026-09-04
   Ports            Never assume :3000 — it is occupied on the dev machine by an unrelated
                    app. E2E uses :3100; ad-hoc probes allocate a free ephemeral port.
   Node version     Works on the local Node 25.2.1, but Prisma 7 prints an unsupported-version

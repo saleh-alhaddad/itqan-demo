@@ -319,3 +319,18 @@ Two lessons worth keeping:
   2. **The design requirement caused it.** Adding `loading.tsx` for design.md's skeleton
      introduced the Suspense boundary that made the page stream; before that, the same code
      returned a clean 404. A UI requirement silently changed a security-relevant behaviour.
+
+### R9 · construct/T08 · 2026-09-04 · DEFECT — a prop copied into state froze the board
+Situation: adding a column returned 201 and the row existed in Postgres, but the board on
+           screen never changed. Verified by calling the API directly against the running
+           server before touching the UI, which ruled the endpoint out in one step.
+Cause:     `BoardView` did `const [board] = useState(initialBoard)`. `useState` reads its
+           argument only on the FIRST render, so the copy froze at mount — `router.refresh()`
+           re-ran the server component and handed down fresh props that the component then
+           ignored.
+Fix:       render straight from props; `const board = initialBoard`. The speculative
+           `refreshError` state was removed with it — T17 introduces polling state when
+           there is polling to hold.
+Why it mattered beyond this slice: the same freeze would have defeated T17's poll silently.
+           The board would have looked correct and simply never updated.
+Recorded:  as a convention in standards.md.

@@ -108,3 +108,20 @@ team-scoped read.
 The original test asserted only `status === 404`, which was true throughout. The regression
 test asserts the response BODY, and was mutation-checked: reverting the query to unscoped
 turns it red.
+
+## 2026-09-04 · T08 columns — create, rename, delete, reorder
+`lib/ordering.ts` is the single funnel that writes `position`, generic over columns and
+tasks so T10 reuses it rather than growing a second implementation. It rewrites the affected
+run inside one transaction, clamps an out-of-range target instead of writing a gap, and
+compacts after a delete. Because D1 removed the unique constraint, the tests asserting
+positions are exactly `0..n-1` ARE the density guarantee — including a randomised run of
+twelve moves.
+
+Column endpoints are membership-scoped through the guards. `DELETE` counts the tasks before
+removing the column and returns `deletedTaskCount`, so the confirmation can state what the
+cascade will destroy (I7) — a shared `ConfirmDialog` names the thing, states the consequence,
+and says it cannot be undone, in one place so the wording cannot drift.
+
+**Defect found (R9):** the board never updated after a mutation because `BoardView` copied
+its prop into `useState`, which reads its argument only on the first render. Rendering from
+props fixed it. The same freeze would have silently defeated T17's polling.

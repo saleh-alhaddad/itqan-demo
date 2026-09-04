@@ -1,4 +1,5 @@
 import { TaskCard } from './TaskCard'
+import { ColumnHeader } from './ColumnHeader'
 import type { BoardColumn } from './types'
 
 /**
@@ -12,10 +13,7 @@ export function ColumnView({ column }: { column: BoardColumn }) {
       aria-label={`${column.name}, ${column.tasks.length} tasks`}
       data-testid="board-column"
     >
-      <header className="flex items-center justify-between px-3 pt-3 pb-2">
-        <h2 className="text-sm font-semibold">{column.name}</h2>
-        <span className="text-muted-foreground text-xs tabular-nums">{column.tasks.length}</span>
-      </header>
+      <ColumnHeader column={column} />
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3">
         {column.tasks.length === 0 ? (
