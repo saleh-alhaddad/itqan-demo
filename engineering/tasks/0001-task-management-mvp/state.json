@@ -33,7 +33,7 @@
       "status": "in_progress",
       "validated": false,
       "artifact": null,
-      "note": "T01-T10 done \u2014 the board is functional end to end: signup -> board -> columns -> tasks -> move (keyboard AND drag). 91 integration + 24 e2e green, lint clean, build exit 0. T10 kept the plan's build order: keyboard move proven BEFORE the drag library, which is why drag's two regressions (live region destroyed by the move it announced; dragHandleProps nesting buttons) were caught immediately. A screenshot also found the app rendering entirely in serif (R12) while every test was green. Next slice: T11 (due dates)."
+      "note": "T01-T11 + T10a done (12/19 slices). 111 unit+integration and 37 e2e green, lint clean, build exit 0; the unit suite is additionally proven under UTC, America/Los_Angeles, Asia/Tokyo and Pacific/Kiritimati. T10a applied design.md's visual language (plan v2, user-directed): five-hue scale cycled by column, three-band cards, initials avatar stack, tint-safe muted token. Contrast is asserted against the PAINTED PIXEL in the browser, not the stylesheet, and mutation-checked. T11 delivered SC4. Next slice: T12 (teams and members)."
     },
     "verify": {
       "status": "todo",
@@ -60,7 +60,7 @@
     }
   },
   "open_items_for_resume": [
-    "IN PROGRESS: construct. T01-T10 done. Next slice: T11 (due dates: classifier + badge). Task Status: lines in plan.md are the per-slice resume marker.",
+    "IN PROGRESS: construct. T01-T11 + T10a done. Next slice: T12 (teams and members: add by email, remove, roles). Task Status: lines in plan.md are the per-slice resume marker.",
     "RESOLVED 2026-09-04: git isolation. main now has baseline commit d4da6a1; branch task/0001-task-management-mvp created off it and is the working branch.",
     "RESOLVED 2026-09-04: I5 dense-integer ordering settled in plan.md as decision D1 \u2014 dense integers rewritten in one transaction, with NO unique(parentId, position) constraint; density asserted by test instead. Sparse/fractional keys recorded as the rejected alternative with a revisit trigger.",
     "OPEN: no password reset exists. Largest MVP product risk, accepted knowingly at the spec gate.",
@@ -70,7 +70,7 @@
     "RULE (learned T07): the proving set is all four of lint, test, test:e2e, build. A lint error was committed past once before this was written down.",
     "RULE (learned T10): a visual check is its own verification step. Behaviour-only assertions cannot see a font/colour/layout regression \u2014 verify must render and look.",
     "OPEN (design, 2026-09-04): design.md's appendix lists 10 reference features that are NOT in spec.md \u2014 tags, progress bars, checklists, attachments, thumbnails, search, suite nav, collapsible columns, photo avatars, times on cards. Each needs a scope decision from the user; adopting any amends the gated spec. The board's column caret is drawn decorative-only pending B8.",
-    "OPEN (design, 2026-09-04): design.md now specifies a visual language the CODE does not yet implement (tints, density, card anatomy). Needs a construct slice; T11's due badge should be built against the re-solved --overdue/--due-soon tokens, not the originals."
+    "RULE (learned T11): a timezone test must not itself be timezone-dependent. Build 'today' from LOCAL fields, due dates from UTC fields, and run the suite under at least LA and Tokyo."
   ],
   "halt_reason": null
 }
