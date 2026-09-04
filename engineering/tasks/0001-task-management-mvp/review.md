@@ -231,8 +231,29 @@ partial thread as though it were whole.
 for any truthy object. `retryOnWriteConflict` is private again, its only external caller
 having been the direct `position` write that C1 removed.
 
+### One more defect, found by refusing to re-roll a flake
+
+The full end-to-end suite failed about one run in three, on a *different* test each time,
+always a 30-second timeout. The obvious suspect was the advisory lock I had just added — a
+blocking lock is exactly the shape of a stall — so that was checked first and ruled out with
+evidence: `0 advisory locks currently held`, `0 sessions waiting on a lock`.
+
+The real cause was in the failure text. `fill()` on the inline rename input succeeded, and
+the *same* input had vanished by `press()`. **Radix returns focus to the dropdown trigger
+when the menu closes**, which blurs the rename input the menu just opened — firing its
+save-on-blur and closing the editor the user asked for. It is a race against the input's
+`autoFocus`, which is why it was intermittent and why it moved between tests.
+
+Fixed by preventing that focus restoration while entering rename mode. Four consecutive full
+suite runs: 72 passed, no failures.
+
+Also gitignored `test-results/`, which Playwright writes on failure and which had been
+tracked.
+
 ## Verdict after round 2
 
-**0 Critical, 0 High, 0 Suggestions — every finding in this review is closed.**
+**0 Critical, 0 High, 0 Suggestions — every finding in this review is closed**, plus one
+defect the fix round surfaced on its own.
 
-Proving set: `lint` 0 · **210** unit and integration · **72** end-to-end · `build` 0.
+Proving set: `lint` 0 · **210** unit and integration · **72** end-to-end across four
+consecutive runs · `build` 0.

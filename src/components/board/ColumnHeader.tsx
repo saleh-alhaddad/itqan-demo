@@ -71,7 +71,14 @@ export function ColumnHeader({ column, onAddTask }: { column: BoardColumn; onAdd
           >
             <MoreHorizontal className="size-4" aria-hidden="true" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent
+            align="end"
+            // Radix returns focus to the trigger when the menu closes. When the item just
+            // selected opened the inline rename input, that steals focus straight back off
+            // it — which fires the input's save-on-blur and closes the editor the user just
+            // asked for. Intermittent by nature: it is a race with the input's autoFocus.
+            onCloseAutoFocus={(e) => { if (renaming) e.preventDefault() }}
+          >
             <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
               Delete column

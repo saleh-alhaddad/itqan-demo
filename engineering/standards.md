@@ -7,6 +7,10 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Menus + inputs:  A menu item that opens an inline editor must prevent Radix's
+                 `onCloseAutoFocus`, or the closing menu returns focus to its trigger, blurs
+                 the new input, and fires its save-on-blur. Intermittent by nature — it races
+                 the input's autoFocus.  · learned in inspect · 2026-09-04
 Ordering writes:  ONLY `lib/ordering.ts` may write `position`, and every such write holds a
                  per-parent advisory lock inside its transaction. A transaction alone does
                  not serialise callers that touch different rows. Use `max + 1`, never

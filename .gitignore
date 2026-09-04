@@ -48,3 +48,7 @@ pgdata/
 # python bytecode from the design contrast tool
 __pycache__/
 *.pyc
+
+# playwright run artifacts
+/test-results/
+/playwright-report/
