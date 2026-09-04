@@ -123,12 +123,12 @@ Conventions:     established in T01 (greenfield — nothing to detect) · 2026-0
   Ports            Never assume :3000 — it is occupied on the dev machine by an unrelated
                    app. E2E uses :3100; ad-hoc probes allocate a free ephemeral port.
   Node version     Works on the local Node 25.2.1, but Prisma 7 prints an unsupported-version
-                   banner. **CI should pin Node 24 LTS** so that warning never masks a real
-                   one.
+                   banner. CI pins **Node 24 LTS** so that warning never masks a real one
+                   (`.github/workflows/ci.yml`, added 2026-09-04).
 Branch format:   task/NNNN-<slug> — suite default, adopted because the repo has no
                  existing convention to follow.  · inferred · 2026-09-03
-Commit format:   conventional commits — suite default for a greenfield repo; no CI to
-                 check against yet.  · inferred · 2026-09-03
+Commit format:   conventional commits — suite default for a greenfield repo. Not
+                 machine-enforced; CI checks the code, not the message.  · inferred · 2026-09-03
 Pinned versions: next 16.3.4 · react 19.2.8 · tailwindcss 4.3.3 · prisma 7.10.0 AND
                  @prisma/client 7.10.0 (**both**, exactly — the `prisma` CLI's npm `latest`
                  tag is the release candidate 8.0.0-rc.12, so an unpinned install pairs an
@@ -157,3 +157,27 @@ Domain terms:    (settled in 0001 DEFINE intake · user-stated/inferred · 2026-
   Due-soon       — due within 2 calendar days of the viewer's today, and not overdue.
   Starter board  — the board auto-created during signup provisioning, with three default
                    columns. Those columns are ordinary editable columns, not a fixed set.
+
+CI pipeline:     `.github/workflows/ci.yml` — on every push to `main` and every PR, against a
+                 `postgres:18-alpine` service pinned to the local major version (a CI database
+                 on a different major is a CI database that can disagree with the one people
+                 develop against). Order: `--frozen-lockfile` install → `migrate deploy` →
+                 `generate` → **drift check** → the proving set.
+                 Three rules it encodes, each learned the hard way in 0001:
+                 (a) the **drift check** (`prisma migrate diff --from-migrations …
+                     --exit-code`) is the only check with NO local equivalent — locally `db
+                     push` silently reconciles `schema.prisma` with the database, so a schema
+                     edited without a matching migration passes every test and breaks the next
+                     deploy. Needs `SHADOW_DATABASE_URL` (wired in `prisma.config.ts`) and the
+                     shadow database must be CREATEd first — Prisma resets it, not creates it.
+                 (b) the unit suite runs **three times**, under UTC / America/Los_Angeles /
+                     Asia/Tokyo, because due dates are read in UTC while "today" is read
+                     locally, and that split has produced a real failure before.
+                 (c) a healthcheck on the postgres service is not optional — without it the
+                     first migration races the database's own startup.
+                 · added 2026-09-04 (release, blocker #3)
+
+Verify the pipeline: A CI workflow that has never executed is a hypothesis, not a safety net.
+                 Run any command it depends on LOCALLY in its exact CI form before committing
+                 the YAML — the drift check above was proven that way — and then push and watch
+                 the first run go green before calling the gate closed.  · learned 2026-09-04

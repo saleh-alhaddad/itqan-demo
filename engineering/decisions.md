@@ -234,3 +234,43 @@ Notable:      A refused MOVE announces the failure rather than the move. Announc
               that did not happen tells a screen-reader user the card is somewhere it is not,
               which is worse than saying nothing at all.
 Status:       accepted
+
+## "Shipped" and "deployed" are two separate decisions · 2026-09-04
+Decision:     `release` for 0001 issued a SPLIT verdict rather than one: **integration GO**
+              (merge to `main`, executed as `23c9eb3`) and **production deployment NO-GO**.
+              Both were recorded, with the NO-GO's four blockers named individually.
+Why:          Collapsing them forces a false choice. A single GO would have implied the app is
+              deployable when no environment, observability or schema-rollback path exists; a
+              single NO-GO would have stranded 37 proven commits on a task branch, where they
+              are not shipped at all (§11) and rot against `main`.
+              The distinction is that the *code* gates and the *apparatus* gates fail for
+              unrelated reasons. `verify`, `harden` and `inspect` all closed at zero findings —
+              nothing about the change blocks the merge. What blocks a deploy is the absence of
+              things that were never part of building it: you cannot watch it, and you cannot
+              un-migrate it.
+Notable:      Write the rollback BEFORE the action, even for a one-step merge. `git revert
+              -m 1 23c9eb3` was recorded before the merge ran; `-m 1` selects the first parent,
+              which is the only thing that makes a merge commit revertible.
+              Re-verify ON THE TARGET BRANCH after merging. A task branch proving green says
+              nothing about the branch it lands on — the merge is itself a change.
+Status:       accepted
+Guarded by:   `tasks/0001-task-management-mvp/release.md` — checklist, both verdicts, both
+              rollback plans, and the post-merge re-verification.
+
+## A mutation that did not apply is not a passing test · 2026-09-04
+Decision:     Every mutation test asserts the substitution actually landed in the file
+              (`assert <mutant> in <source>`) BEFORE running the suite against it.
+Why:          This failed silently three times across 0001 — a `sed` pattern that did not
+              match, a `prisma db push --skip-generate` that printed help instead of running,
+              and a stale file path. Each reported a green suite, and each time the obvious
+              reading was "this test is too weak to catch the bug".
+              The true reading was the opposite: the test was never run against the bug at all.
+              The two outcomes are indistinguishable from the output alone, and they point in
+              opposite directions — one says strengthen the test, the other says fix the
+              harness. Roughly 60 mutants were used across the task; without this check, three
+              of them would have quietly certified tests that had proven nothing.
+Notable:      Generalises past mutation testing: any negative-result technique must first prove
+              it actually perturbed the system. The same class of error made an a11y probe pass
+              vacuously by returning `[]` for an empty element set — fixed by asserting
+              `examined > 8` before asserting the property.
+Status:       accepted
