@@ -1,0 +1,105 @@
+name: CI
+
+# Closes the third release blocker: until now the suite had only ever run on one
+# developer machine. That is not evidence — this session alone found three intermittent
+# failures that individual local runs had passed.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first: the older run's answer is about
+# code nobody is looking at any more.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        # Matches the local major version. A CI database on a different major is a CI
+        # database that can disagree with the one people develop against.
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: itqan
+          POSTGRES_PASSWORD: itqan
+          POSTGRES_DB: itqan_test
+        ports: ['5432:5432']
+        # Without this the first migration races the database's own startup.
+        options: >-
+          --health-cmd "pg_isready -U itqan -d itqan_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://itqan:itqan@localhost:5432/itqan_test
+      SHADOW_DATABASE_URL: postgresql://itqan:itqan@localhost:5432/itqan_shadow
+      # The e2e suite binds this; :3000 is taken on the dev machine and the config
+      # already defaults here, but CI should not depend on a default it cannot see.
+      E2E_PORT: '3100'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          # Pinned to 24 LTS deliberately: Prisma 7 prints an unsupported-version banner
+          # on the local Node 25, and a warning nobody can silence is a warning that
+          # eventually hides a real one.
+          node-version: 24
+          cache: pnpm
+
+      # --frozen-lockfile: CI must build what the lockfile says, not resolve something new.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create the shadow database
+        run: psql "$DATABASE_URL" -c 'CREATE DATABASE itqan_shadow OWNER itqan;'
+        env:
+          PGPASSWORD: itqan
+
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm exec prisma generate
+
+      # Drift is its own failure: a schema.prisma edited without a matching migration
+      # passes every test and breaks the next deploy.
+      - name: Check for schema drift
+        run: pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+
+      - run: pnpm lint
+
+      # Three timezones: UTC plus one either side of it. The date suite was itself
+      # timezone-dependent once — it passed in Tokyo and failed in Los Angeles — because
+      # due dates are read in UTC while "today" is read locally.
+      - name: Unit and integration tests (UTC)
+        run: pnpm test
+        env: { TZ: UTC }
+      - name: Unit and integration tests (America/Los_Angeles)
+        run: pnpm test
+        env: { TZ: America/Los_Angeles }
+      - name: Unit and integration tests (Asia/Tokyo)
+        run: pnpm test
+        env: { TZ: Asia/Tokyo }
+
+      - run: pnpm build
+
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+      # The report is what makes a red run diagnosable without reproducing it locally.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
