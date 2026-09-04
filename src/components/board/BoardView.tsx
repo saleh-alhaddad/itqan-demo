@@ -50,7 +50,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           <AddColumn boardId={board.id} variant="empty" />
         </div>
       ) : (
-        <DragContext boardId={board.id} columns={board.columns} />
+        <DragContext boardId={board.id} columns={board.columns} members={board.members} />
       )}
     </div>
     </BoardAnnouncer>

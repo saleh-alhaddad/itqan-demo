@@ -486,7 +486,7 @@ Shape:      `src/app/api/tasks/[taskId]/assignees/route.ts`,
             not in a listener or a cleanup job — a deferred cleanup means a window where I4
             is false, and I4 is an invariant, not a tendency.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 14 — Comments
 Goal:       Team members can discuss a task, and the two deletion rules hold.

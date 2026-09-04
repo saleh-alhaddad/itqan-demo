@@ -20,7 +20,10 @@ export function AvatarStack({
   return (
     <span
       className="flex items-center"
-      // The stack is decorative repetition of a fact stated once, for assistive tech.
+      data-testid="avatar-stack"
+      // Inside the card button this label is absorbed into the button's accessible name,
+      // which is the outcome we want: the card announces "<title> … Assigned to <names>"
+      // as one thing, rather than as a separate image a screen reader must hunt for.
       role="img"
       aria-label={`Assigned to ${people.map((p) => p.name).join(', ')}`}
     >

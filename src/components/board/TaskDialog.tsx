@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConfirmDialog } from './ConfirmDialog'
 import { DueBadge } from './DueBadge'
-import type { BoardTask } from './types'
+import { AssigneePicker } from './AssigneePicker'
+import type { BoardTask, Member } from './types'
 
 /**
  * Task detail.
@@ -22,9 +23,10 @@ import type { BoardTask } from './types'
  * and comments (T14).
  */
 export function TaskDialog({
-  task, open, onOpenChange,
+  task, members, open, onOpenChange,
 }: {
   task: BoardTask
+  members: Member[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -78,6 +80,25 @@ export function TaskDialog({
                 onBlur={(e) => {
                   const value = e.currentTarget.value.trim()
                   if (value !== (task.description ?? '')) void save({ description: value || null })
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Assignees</span>
+              <AssigneePicker
+                members={members}
+                assigned={task.assignees}
+                disabled={saving}
+                onChange={async (userIds) => {
+                  setSaving(true)
+                  await fetch(`/api/tasks/${task.id}/assignees`, {
+                    method: 'PUT',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ userIds }),
+                  })
+                  setSaving(false)
+                  router.refresh()
                 }}
               />
             </div>

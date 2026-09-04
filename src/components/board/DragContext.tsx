@@ -6,7 +6,7 @@ import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { useAnnounce } from './BoardAnnouncer'
 import { ColumnView } from './ColumnView'
 import { AddColumn } from './AddColumn'
-import type { BoardColumn } from './types'
+import type { BoardColumn, Member } from './types'
 
 /**
  * Drag-and-drop, layered ON TOP of the keyboard move control — which was built and tested
@@ -16,7 +16,13 @@ import type { BoardColumn } from './types'
  * rejection rolls it back VISIBLY with a reason rather than silently reverting. A silent
  * revert is the worst outcome — the user believes the move happened.
  */
-export function DragContext({ boardId, columns }: { boardId: string; columns: BoardColumn[] }) {
+export function DragContext({
+  boardId, columns, members,
+}: {
+  boardId: string
+  columns: BoardColumn[]
+  members: Member[]
+}) {
   const router = useRouter()
   const announce = useAnnounce()
 
@@ -84,7 +90,7 @@ export function DragContext({ boardId, columns }: { boardId: string; columns: Bo
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full gap-4 p-4">
           {shown.map((column) => (
-            <ColumnView key={column.id} column={column} columns={shown} />
+            <ColumnView key={column.id} column={column} columns={shown} members={members} />
           ))}
           <AddColumn boardId={boardId} />
         </div>

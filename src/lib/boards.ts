@@ -29,6 +29,9 @@ export async function loadBoardFor(userId: string, boardId: string) {
       id: true,
       name: true,
       teamId: true,
+      // The roster the assignee picker offers. Scoped to this board's team, so the UI
+      // cannot present a person the server would then reject (I4).
+      team: { select: { memberships: { select: { user: { select: { id: true, name: true, email: true } } } } } },
       columns: {
         orderBy: { position: 'asc' },
         select: {
@@ -55,8 +58,10 @@ export async function loadBoardFor(userId: string, boardId: string) {
 
   if (!board) return null
 
+  const { team, ...rest } = board
   return {
-    ...board,
+    ...rest,
+    members: team.memberships.map((m) => m.user),
     columns: board.columns.map((column) => ({
       ...column,
       tasks: column.tasks.map(({ _count, assignees, ...task }) => ({

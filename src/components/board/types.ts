@@ -11,4 +11,11 @@ export type BoardTask = {
 }
 
 export type BoardColumn = { id: string; name: string; position: number; tasks: BoardTask[] }
-export type Board = { id: string; name: string; teamId: string; columns: BoardColumn[] }
+export type Member = { id: string; name: string; email: string }
+export type Board = {
+  id: string
+  name: string
+  teamId: string
+  members: Member[]
+  columns: BoardColumn[]
+}

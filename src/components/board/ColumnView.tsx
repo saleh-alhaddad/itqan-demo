@@ -7,7 +7,7 @@ import { TaskCard } from './TaskCard'
 import { ColumnHeader } from './ColumnHeader'
 import { AddTask } from './AddTask'
 import { tintStyle } from '@/lib/tint'
-import type { BoardColumn } from './types'
+import type { BoardColumn, Member } from './types'
 
 /**
  * One column: a drop target, and its own vertical scroll area.
@@ -19,7 +19,13 @@ import type { BoardColumn } from './types'
  * every card inside inherits them — so a card carries no knowledge of which hue it is, and
  * moving a card between columns re-tints it for free.
  */
-export function ColumnView({ column, columns }: { column: BoardColumn; columns: BoardColumn[] }) {
+export function ColumnView({
+  column, columns, members,
+}: {
+  column: BoardColumn
+  columns: BoardColumn[]
+  members: Member[]
+}) {
   const [adding, setAdding] = useState(false)
 
   return (
@@ -53,6 +59,7 @@ export function ColumnView({ column, columns }: { column: BoardColumn; columns: 
                   index={index}
                   columns={columns}
                   columnName={column.name}
+                  members={members}
                 />
               ))
             )}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmDialog } from '@/components/board/ConfirmDialog'
@@ -68,7 +69,15 @@ export function TeamSettings({
   return (
     <main className="mx-auto w-full max-w-2xl space-y-8 p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
+        {/* Settings must lead back to the boards, or it is a dead end reachable only by
+            the browser's back button. */}
+        <Link
+          href="/boards"
+          className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+        >
+          Boards
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{team.name}</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           {team.memberships.length} {team.memberships.length === 1 ? 'member' : 'members'}
         </p>

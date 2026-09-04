@@ -8,7 +8,7 @@ import { MoveTaskMenu } from './MoveTaskMenu'
 import { AvatarStack } from './AvatarStack'
 import { DueBadge } from './DueBadge'
 import { CountChip } from './CountChip'
-import type { BoardColumn, BoardTask } from './types'
+import type { BoardColumn, BoardTask, Member } from './types'
 
 /**
  * A card, in three bands (design.md → Card anatomy):
@@ -25,12 +25,13 @@ import type { BoardColumn, BoardTask } from './types'
  * buttons inside a button.
  */
 export function TaskCard({
-  task, index, columns, columnName,
+  task, index, columns, columnName, members,
 }: {
   task: BoardTask
   index: number
   columns: Pick<BoardColumn, 'id' | 'name' | 'tasks'>[]
   columnName: string
+  members: Member[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -99,7 +100,7 @@ export function TaskCard({
             ) : null}
           </button>
 
-          <TaskDialog task={task} open={open} onOpenChange={setOpen} />
+          <TaskDialog task={task} members={members} open={open} onOpenChange={setOpen} />
         </div>
       )}
     </Draggable>

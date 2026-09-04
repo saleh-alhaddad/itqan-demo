@@ -20,6 +20,8 @@ export type ErrorCode =
   | 'NO_SUCH_ACCOUNT'
   /** I6: a team must always keep at least one owner. */
   | 'LAST_OWNER'
+  /** I4: an assignee must be a member of the team owning the task's board. */
+  | 'NOT_A_MEMBER'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {
