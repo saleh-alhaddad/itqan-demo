@@ -1,58 +1,49 @@
 # Summary — 0001 · Task management app (teams, boards, due dates)
 
-Status at close: **BLUEPRINT complete, awaiting the approval gate.**
-`define` ✓ approved · `design` ✓ · `blueprint` ✓ written, `approved:false`.
-No code exists. `construct` must not start until the gate is answered.
+Status at close: **CONSTRUCT COMPLETE — all 19 plan slices done.**
+`define` ✓ approved · `design` ✓ (revised from the reference) · `blueprint` ✓ approved (v2) ·
+`construct` ✓ done. **`verify`, `harden`, `inspect` and `release` have NOT run.**
 
-## What this run did (2026-09-04)
+## Proven at close, not recalled
 
-1. **Resume sweep.** Re-proved every prior phase rather than trusting the ledger.
-   All artifacts present and non-empty; `state.json` parses; `index.md` agrees with it.
-   Re-ran `git check-ignore -v engineering/profile.md` → exit 1: a `.gitignore` appeared
-   since the profile was written, and the committed exposure still holds.
-2. **Resolved the blocking open item — git isolation.** `main` now carries baseline commit
-   `d4da6a1`; branch `task/0001-task-management-mvp` created off it.
-3. **Dependency reality check against the live npm registry** (not from memory).
-   Findings are recorded in `plan.md` § "Step 1b" with the command that produced each.
-4. **Wrote `plan.md`** — 18 dependency-ordered vertical slices, risk-first.
-5. **Fresh-eyes pass** read from the file alone; fixed 3 defects before presenting.
+| Check | Result |
+|---|---|
+| `pnpm lint` | exit 0 |
+| `pnpm test` | **171 passed** — also green under UTC, America/Los_Angeles, Asia/Tokyo |
+| `pnpm test:e2e` | **57 passed** |
+| `pnpm build` | exit 0 |
+| Schema drift | none (`migrate diff` exit 0) |
+| Working tree | clean |
 
-## The findings that changed the plan
+All 11 success criteria and all 7 invariants carry test references. Roughly 45 mutants were
+introduced across the run and every one was killed — after correcting three that turned out
+not to have applied at all, which is its own lesson.
 
-- **`prisma` CLI `latest` is `8.0.0-rc.12`; `@prisma/client` `latest` is `7.10.0`.** A bare
-  install pairs an RC CLI with a stable client. T01 pins both to `7.10.0`.
-- **Prisma 7 is ESM-only** (`"type": "module"`) and its `prisma-client` generator needs an
-  explicit output path — a T01 acceptance criterion, not a footnote.
-- **Prisma 7 + Next 16 + Turbopack has a known bundling break.** T01 is therefore a walking
-  skeleton that must survive a *production build*, with three escape hatches named in advance.
-- **Next 16 removed synchronous `params`/`cookies()`** — non-awaited access compiles cleanly
-  while being broken, so it is stated once for every task.
-- **`react-beautiful-dnd`, `lucia`, and `shadcn-ui` are all registry-deprecated.** Excluded.
-- **Both live drag-and-drop libraries are stale** (last published 2024-12 / 2025-02).
-  Mitigated structurally: T10 builds the explicit move control *before* any drag library, so
-  the app is fully usable if the library has to be dropped.
+## What exists
 
-## Decisions this plan settles
+Signup provisions a usable board atomically. Boards carry user-defined columns; tasks can be
+created, edited, moved by keyboard or drag, assigned, dated and discussed. Teams add and
+remove members by email with a last-owner guard. Everything cascades on delete, and an open
+board re-fetches every ten seconds.
 
-- **D1 — I5 ordering** (the spec deferred this to blueprint): dense integers rewritten in one
-  transaction, with **no** `unique(parentId, position)` constraint — density is asserted by
-  test instead. Sparse/fractional keys recorded as the rejected alternative, with a revisit
-  trigger.
-- **D2 — one authorization funnel.** Guards *return the fetched resource*, so a handler
-  cannot obtain a board without passing the check. T06 builds it before any board endpoint.
-- **D3 — one `notFound()`**, because SC5 asserts byte-identity and two hand-written 404
-  bodies eventually differ.
+## The decisions that shaped it
 
-## What the next session must pick up
+1. **A board belongs to exactly one team**, so every authorization check is a membership lookup.
+2. **A task\'s column IS its status** — one representation, nothing to drift.
+3. **Authorization lives in the query**, never in a layout. Learned the hard way: a layout
+   check let a page serialise another team\'s board into a 404\'s RSC payload.
+4. **Dense ordering with no unique constraint**, guaranteed by one funnel plus tests.
+5. **Polling, not push**, with staleness stated as a product property.
+6. **Hard delete only**, with every cascade named in its confirmation.
+7. **The design reference contributed a visual language and no features** — all ten of its
+   extra capabilities were declined and recorded in `spec.md`.
 
-- **The gate is unanswered.** `plan.md` is on disk with `approved:false`. A resumed run
-  re-presents it; it does not build from it.
-- **Two Shape choices are deliberately unmade**, each with a recommendation:
-  **T03 session storage** — stateless sealed cookie vs DB-backed session table
-  (*recommended: DB-backed*; a sealed cookie cannot revoke on logout, which `harden` will
-  raise anyway). **T10 drag library** — `@dnd-kit` vs `@hello-pangea/dnd`
-  (*recommended: `@hello-pangea/dnd`*, the only one declaring React 19 support).
-- **`harden` remains scheduled, not optional** — self-hosted credentials plus SC7's
-  enumeration oracle.
-- **Nothing is committed.** The branch exists; `plan.md` and the ledger updates are
-  uncommitted. The first commit is the user's call (§12).
+## What the next session must do
+
+- **`verify` has not run.** Construct proves each slice; verify exercises the whole thing.
+- **`harden` is scheduled and NOT optional** — self-hosted credentials, SC7\'s deliberate
+  enumeration oracle, argon2 cost parameters left at defaults, and the login rate
+  limiting/lockout the spec explicitly deferred to it.
+- **Then `inspect`, then `release`** (GO/NO-GO gate).
+- **No password reset exists.** The largest accepted MVP risk, taken knowingly at the spec gate.
+- **CI should pin Node 24 LTS**; Prisma 7 warns on the local Node 25 (verified non-fatal).

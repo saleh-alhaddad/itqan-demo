@@ -30,10 +30,10 @@
       "note": "plan.md approved by the user at the gate on 2026-09-04 (intake Q18), after being shown the Step 1b dependency findings and decision D1. Two open Shape choices were settled at the same gate: T03 session storage = DB-backed session table (Q19); T10 drag library = @hello-pangea/dnd (Q20). Both folded into plan.md. Fresh-eyes pass had fixed 3 defects before presentation."
     },
     "construct": {
-      "status": "in_progress",
-      "validated": false,
+      "status": "done",
+      "validated": true,
       "artifact": null,
-      "note": "T01-T11 + T10a done (12/19 slices). 111 unit+integration and 37 e2e green, lint clean, build exit 0; the unit suite is additionally proven under UTC, America/Los_Angeles, Asia/Tokyo and Pacific/Kiritimati. T10a applied design.md's visual language (plan v2, user-directed): five-hue scale cycled by column, three-band cards, initials avatar stack, tint-safe muted token. Contrast is asserted against the PAINTED PIXEL in the browser, not the stylesheet, and mutation-checked. T11 delivered SC4. Next slice: T12 (teams and members)."
+      "note": "ALL 19 plan slices done (T01-T18 + T10a). Proving set green and re-run at close: lint exit 0 \u00b7 171 unit+integration (also green under UTC, America/Los_Angeles, Asia/Tokyo) \u00b7 57 e2e \u00b7 build exit 0 \u00b7 zero schema drift. All 11 success criteria and all 7 invariants have test references. ~45 mutants introduced across the run; every one killed after correcting three that had not actually applied."
     },
     "verify": {
       "status": "todo",
@@ -60,17 +60,12 @@
     }
   },
   "open_items_for_resume": [
-    "IN PROGRESS: construct. T01-T11 + T10a done. Next slice: T12 (teams and members: add by email, remove, roles). Task Status: lines in plan.md are the per-slice resume marker.",
-    "RESOLVED 2026-09-04: git isolation. main now has baseline commit d4da6a1; branch task/0001-task-management-mvp created off it and is the working branch.",
-    "RESOLVED 2026-09-04: I5 dense-integer ordering settled in plan.md as decision D1 \u2014 dense integers rewritten in one transaction, with NO unique(parentId, position) constraint; density asserted by test instead. Sparse/fractional keys recorded as the rejected alternative with a revisit trigger.",
-    "OPEN: no password reset exists. Largest MVP product risk, accepted knowingly at the spec gate.",
-    "SCHEDULED: harden must run before release (self-hosted credentials + SC7 enumeration oracle).",
-    "NOTE: `prisma` CLI npm 'latest' is 8.0.0-rc.12 \u2014 both prisma packages are pinned to 7.10.0 in package.json. Do not run `prisma@latest`.",
-    "RULE (learned T07, in standards.md + decisions.md): team-scoped reads embed the membership predicate IN THE QUERY. A layout check is never the boundary \u2014 layouts and pages render concurrently.",
-    "RULE (learned T07): the proving set is all four of lint, test, test:e2e, build. A lint error was committed past once before this was written down.",
-    "RULE (learned T10): a visual check is its own verification step. Behaviour-only assertions cannot see a font/colour/layout regression \u2014 verify must render and look.",
-    "RULE (learned T11): a timezone test must not itself be timezone-dependent. Build 'today' from LOCAL fields, due dates from UTC fields, and run the suite under at least LA and Tokyo.",
-    "CLOSED 2026-09-04 (Q21): all ten design-reference scope questions DECLINED for this version and recorded in spec.md under \"Declined from the design reference\". The reference is closed as a source of scope."
+    "NEXT PHASE: verify \u2014 exercise the whole thing for real (construct is done, verify has NOT run).",
+    "SCHEDULED, NOT OPTIONAL: harden must run before release. Self-hosted credentials plus SC7's deliberate enumeration oracle (the explicit \"no account with that email\"), argon2 cost parameters left at library defaults for harden to tune, and login rate limiting / lockout which the spec explicitly deferred to harden.",
+    "THEN: inspect, then release (GO/NO-GO gate).",
+    "NOT BUILT, BY DECISION (Q21): all ten design-reference features are declined and recorded in spec.md under \"Declined from the design reference\". The reference is closed as a source of scope.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset exists. Largest product risk, accepted at the spec gate.",
+    "CI SHOULD PIN NODE 24 LTS \u2014 Prisma 7 prints an unsupported-version banner on the local Node 25."
   ],
   "halt_reason": null
 }
