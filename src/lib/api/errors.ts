@@ -26,6 +26,8 @@ export type ErrorCode =
   | 'FORBIDDEN'
   /** Two transactions wrote the same rows; one aborted. Transient and safe to retry. */
   | 'WRITE_CONFLICT'
+  /** harden C1: too many failed authentication attempts; a cooldown is in force. */
+  | 'TOO_MANY_ATTEMPTS'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -37,20 +37,39 @@ export function TaskDialog({
   const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  /**
+   * In-flight saves, so the dialog cannot be dismissed with an edit still on the wire.
+   *
+   * Fields save on blur, and nothing awaited that: pressing Escape immediately after typing
+   * left a PATCH in flight, and a navigation at that moment cancels it — the edit is
+   * silently lost. The comment on the title field claimed a dialog "must not be able to lose
+   * typing"; this is what actually makes that true.
+   */
+  const pending = useRef<Promise<unknown>>(Promise.resolve())
+
   async function save(fields: Record<string, unknown>) {
     setSaving(true)
-    await fetch(`/api/tasks/${task.id}`, {
+    const request = fetch(`/api/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(fields),
-    })
-    setSaving(false)
+    }).finally(() => setSaving(false))
+
+    // Chained, not replaced: two fields blurred in quick succession must BOTH be waited on.
+    pending.current = pending.current.then(() => request, () => request)
+    await request
     router.refresh()
+  }
+
+  /** Closing waits for anything still saving; opening is immediate. */
+  async function handleOpenChange(next: boolean) {
+    if (!next) await pending.current.catch(() => {})
+    onOpenChange(next)
   }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(next) => void handleOpenChange(next)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="sr-only">Task details</DialogTitle>

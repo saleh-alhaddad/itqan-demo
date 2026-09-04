@@ -242,3 +242,25 @@ and pinned with a failing test before any fix.
 Also measured rather than assumed: the polled board query is p50 4.4ms with 4 SQL statements
 on a 360-task board, and the payload dropped 151.3 KB → 122.3 KB after removing member email
 addresses that no board component reads.
+
+## 2026-09-04 · harden — 1 Critical and 1 High found, fixed, and re-proven
+The audit measured ~138 login attempts per second with no throttle and no lockout, and found
+signup disclosing whether any address has an account — the two compose into targeted
+credential stuffing, made worse by there being no password reset.
+
+Both are fixed. Login and signup now use a DB-backed exponential **cooldown** counted against
+the email and the IP. Deliberately not a lockout: locking an account after N failures would
+hand an attacker a denial-of-service against any user whose address they know. Re-run with the
+identical probe, 96 of 100 attempts are refused and only 4 reach a password check — and the
+cooldown is proven to elapse, with the correct password refused during it and accepted after.
+
+Also fixed: `/` served create-next-app's starter page to anonymous visitors, `X-Powered-By`
+advertised the framework, and `.env.example` carried a working password.
+
+Four Mediums remain open by decision: no security headers, CSRF resting on SameSite alone,
+the shadcn CLI as a runtime dependency, and sessions with no absolute lifetime.
+
+**A non-security defect surfaced while re-verifying:** the task dialog saved on blur without
+awaiting, so dismissing it left a PATCH in flight that a navigation could cancel — losing the
+edit, and contradicting the file's own comment. It had been producing a wandering end-to-end
+flake, a different test each run. Closing now waits for in-flight saves.

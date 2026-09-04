@@ -117,3 +117,48 @@ Bounded:      3 attempts, P2034 only. Retrying a genuine failure would hide it.
 Status:       accepted
 Guarded by:   tests/integration/task-move.test.ts concurrency regressions — verified by
               disabling the retry, which turns them red in 3 of 4 runs.
+
+## Auth throttling is a cooldown, not a lockout · 2026-09-04
+Decision:     Failed logins push the *next permitted attempt* further out, exponentially
+              (3 free attempts, then 1s/2s/4s… capped at 5 minutes), counted against BOTH the
+              email address and the client IP. Counters live in a database table. No account
+              is ever locked.
+Why:          harden C1 measured ~138 login attempts per second from one client with no
+              throttle and no lockout — credential stuffing with nothing in its way, made
+              worse because there is no password reset, so a stolen account is unrecoverable.
+              A hard lockout would have been the obvious fix and the wrong one: locking an
+              account after N failures hands an attacker a denial-of-service against any user
+              whose address they know. A cooldown costs a person who mistypes their password
+              about a second, and costs an attacker everything.
+              The counters are in Postgres rather than in memory because an in-process counter
+              resets on restart and is not shared between instances — worthless on the
+              serverless hosting the polling decision deliberately kept viable. Same reasoning
+              that put sessions in the database.
+              Both buckets are needed: an email-only counter is escaped by spraying many
+              addresses, an IP-only counter by distributing one address across hosts.
+Fails open:   A database error skips the throttle rather than refusing the request. A control
+              that cannot read its counters must not become an outage of the login page.
+              Narrow and deliberate — the exposure lasts only as long as the database problem.
+Alternatives: Hard lockout after N failures (rejected: DoS on the real owner). CAPTCHA
+              (rejected for the MVP: a third-party dependency, and the spec avoids those).
+              In-memory limiter (rejected: useless across instances and restarts).
+Status:       accepted
+Guarded by:   tests/unit/throttle.test.ts (the policy numbers) and
+              tests/integration/auth-throttle.test.ts (both buckets, the 429, Retry-After,
+              reset-on-success, and that the cooldown is bounded).
+
+## Signup keeps its "already registered" message · 2026-09-04
+Decision:     `POST /api/auth/signup` continues to answer 409 for an existing address. The
+              enumeration this permits is mitigated by throttling the surface, not by removing
+              the message.
+Why:          The alternatives are worse. Returning 201 always and mailing the real owner is
+              the standard fix and is unavailable — the MVP ships no email. Returning a vague
+              error leaves a person who genuinely has an account unable to work out why signup
+              fails, with no password reset to fall back on. Throttling makes probing an
+              address list impractical while a real person on their first attempt still gets a
+              straight answer.
+Consequence:  A determined attacker can still confirm a handful of addresses slowly. Accepted
+              knowingly: the spec already accepts the same trade at SC7 for member lookup.
+Status:       accepted
+Revisit when: an email provider is added — that unlocks the standard fix for this, password
+              reset, and true invitations together.

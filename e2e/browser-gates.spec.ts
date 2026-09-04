@@ -163,3 +163,17 @@ test('the board is completable by keyboard alone, and focus order follows the DO
   await page.keyboard.press('Enter')
   await expect(page.getByTestId('task-card').filter({ hasText: 'Made by keyboard' })).toBeVisible()
 })
+
+test('harden I1: the root route leads into the app, not a framework starter page', async ({ page }) => {
+  await page.context().clearCookies()
+  await page.goto('/')
+  // Signed out, the root should end at the login page — never at a page telling the visitor
+  // to edit page.tsx.
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByText(/get started, edit|Deploy Now/i)).toHaveCount(0)
+})
+
+test('harden I2: the framework is not advertised in response headers', async ({ request }) => {
+  const res = await request.get('/login')
+  expect(res.headers()['x-powered-by']).toBeUndefined()
+})

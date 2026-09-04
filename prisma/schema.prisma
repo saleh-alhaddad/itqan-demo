@@ -57,6 +57,32 @@ model Session {
   @@index([userId])
 }
 
+/**
+ * Failed-authentication counters, for the login/signup throttle (harden C1).
+ *
+ * In the database rather than in memory: an in-process counter resets on every restart and
+ * is not shared between instances, which makes it worthless on the serverless hosting the
+ * spec deliberately kept viable. Same reasoning that made sessions DB-backed.
+ *
+ * One row per (key, kind) — the key is an IP or an email address, so a single attacker
+ * cannot escape the count by varying the other.
+ */
+model AuthAttempt {
+  id            String   @id @default(uuid())
+  /// "ip:203.0.113.7" or "email:someone@example.test"
+  key           String
+  /// "login" or "signup"
+  kind          String
+  failures      Int      @default(0)
+  /// Attempts before this instant are refused with 429. NOT a lock: it always elapses.
+  nextAttemptAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([key, kind])
+  /// Lets a cleanup job find stale rows without scanning.
+  @@index([updatedAt])
+}
+
 model Team {
   id        String   @id @default(uuid())
   name      String

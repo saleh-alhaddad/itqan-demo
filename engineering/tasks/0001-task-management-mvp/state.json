@@ -44,9 +44,9 @@
     "harden": {
       "status": "done",
       "validated": true,
-      "approved": false,
+      "approved": true,
       "artifact": "security-review.md",
-      "note": "Audit complete, NOT clean: 1 Critical, 1 High, 4 Medium, 4 Info. approved:false because Critical/High are unresolved and must be fixed or explicitly accepted before release. C1 = login has no rate limiting/lockout: DEMONSTRATED 100 attempts in 0.7s (~138/s), zero 429s, no lock after 100 failures. H1 = signup discloses account existence (409 EMAIL_TAKEN), anonymous, which makes C1 targeted. Both change an auth flow, which security.md says needs explicit human approval before building \u2014 raised, not unilaterally fixed. RESOLVED with evidence: argon2 params are exactly the OWASP minimum (m=19456,t=2,p=1) so the spec's deferred concern needs no change; all 3 dependency advisories are unreachable (0 files in the production build, postgres datasource, prisma is a devDependency); Next 16.3.4 is patched for the Aug 2026 RCEs. SC7 enumeration oracle reconciled: acceptable at its narrower reach (team owner) while signup is the same class at anonymous reach."
+      "note": "Audit + fixes + re-audit complete. At audit: 1 Critical, 1 High, 4 Medium, 4 Info. After fixes: 0 Critical, 0 High, 4 Medium open, 0 Info. approved:true because nothing blocks release on severity. C1 (no login throttle) FIXED and re-proven with the SAME probe: 96 of 100 attempts now 429, only 4 password checks performed, and the cooldown is proven to ELAPSE (correct password 429 during, 200 after) so it is not a lockout DoS. H1 mitigated by throttling signup while keeping the usable message. I1/I2/I3 fixed. OPEN: M1 no security headers, M2 CSRF is SameSite-only, M3 shadcn CLI is a runtime dependency, M4 no absolute session lifetime \u2014 user chose not to fix these now; each is a missing layer behind a working control. Also fixed while re-verifying: TaskDialog could lose an edit on close (in-flight PATCH cancelled by navigation), which had been producing a wandering e2e flake \u2014 4 consecutive clean full runs."
     },
     "inspect": {
       "status": "todo",
@@ -61,12 +61,11 @@
     }
   },
   "open_items_for_resume": [
-    "BLOCKING RELEASE: harden found 1 Critical (C1 no login rate limiting \u2014 demonstrated 138 attempts/s, no lockout) and 1 High (H1 signup account enumeration). Must be fixed or explicitly accepted by the user before release. Both touch an auth flow, which needs explicit approval before building.",
-    "Medium findings for the same decision: M1 no security headers, M2 CSRF is SameSite-only, M3 shadcn CLI is a runtime dependency, M4 sessions never expire while used and cannot be revoked en masse.",
-    "NEXT PHASE after the C1/H1 decision: inspect, then release (GO/NO-GO).",
-    "FINDING (verify): no schema rollback path \u2014 needed before migration #2.",
-    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms). Measured, within tolerance.",
-    "KNOWN MVP RISK, ACCEPTED: no password reset \u2014 which also makes a stolen account unrecoverable (see C1)."
+    "NEXT PHASE: inspect, then release (GO/NO-GO gate). harden is approved \u2014 nothing blocks on severity.",
+    "OPEN from harden, deferred by the user (non-blocking Mediums): M1 no security headers (CSP, X-Frame-Options, nosniff, Referrer-Policy, HSTS); M2 CSRF defence is SameSite=Lax alone, no Origin check; M3 the shadcn CLI (33 deps) is a runtime dependency and should move to devDependencies; M4 sessions refresh forever with no absolute cap and no sign-out-everywhere.",
+    "FINDING (verify): no schema rollback path \u2014 now TWO migrations exist, so this matters from here on.",
+    "FINDING (verify): polled board payload 122 KB on a 360-task board (p50 4.4ms). Measured.",
+    "KNOWN MVP RISK, ACCEPTED: no password reset. Note it compounds C1 \u2014 a stolen account is unrecoverable by its owner."
   ],
   "halt_reason": null
 }

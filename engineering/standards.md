@@ -7,6 +7,14 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Auth throttling: Login and signup are throttled by a DB-backed cooldown in
+                 `lib/auth/throttle.ts`, counted against email AND IP. Never add a hard
+                 account lockout — it is a DoS against the real owner. See decisions.md.
+                 · learned in harden · 2026-09-04
+Async on close:  A surface that saves on blur must WAIT for in-flight requests before it can
+                 be dismissed. Firing and forgetting loses the edit when the close is followed
+                 by a navigation, and shows up as a wandering test flake rather than a clear
+                 bug.  · learned in harden · 2026-09-04
 Storable text:   Every user-supplied string that reaches Postgres goes through
                  `lib/api/validation.ts`. A `text` column cannot hold U+0000, and accepting
                  one produced a trivially reachable 500. Validation must check what the

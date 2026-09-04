@@ -152,11 +152,61 @@ long as it is used, and its owner has no way to revoke it (there is no password 
 | **XSS** | Comments and titles render as text; no `dangerouslySetInnerHTML` anywhere. Asserted end-to-end with a script-tag payload. |
 | **LLM Top 10** | Not applicable — no model, prompt, or agent surface in this product. |
 
-## Verdict
+## Verdict at audit time
 
-**1 Critical, 1 High, 4 Medium, 4 Info.** C1 and H1 must be fixed or explicitly accepted
-before release. C1 is the one that matters: it is anonymous, demonstrated, and unmitigated,
-and H1 makes it targeted.
+**1 Critical, 1 High, 4 Medium, 4 Info.**
 
-Both C1 and the throttling half of H1 change an auth flow, which `security.md` says needs
-explicit human approval before building. They are raised here rather than fixed.
+---
+
+# Re-audit · 2026-09-04 — C1, H1 and all four Info items FIXED
+
+The user approved fixing C1 + H1 and the Info items. Built through `construct`, then the
+**same probes that produced the findings** were re-run against the rebuilt server.
+
+### C1 — RESOLVED
+The identical brute-force probe, before and after:
+
+| | before | after |
+|---|---|---|
+| 100 attempts answered | 100 × `401` | **4 × `401`, 96 × `429`** |
+| attempts rate-limited | 0 | **96** |
+| password checks actually performed | 100 | **4** |
+
+**And it is a cooldown, not a lockout** — proven, because that distinction is the whole
+design: a hard lock would let an attacker deny a legitimate user their own account.
+Live evidence: correct password *during* the cooldown → `429`; after waiting the advertised
+`Retry-After` → **`200`**. The owner gets back in.
+
+Design notes: counters live in the database, not in memory — an in-process counter resets on
+restart and is not shared between instances, which is worthless on the serverless hosting the
+spec deliberately kept viable. Counted against **both** the email and the IP, so spraying many
+addresses from one host and distributing one address across hosts are both caught. The
+throttle **fails open** on a database error: a throttle that cannot read its counters must not
+become an outage of the login page.
+
+### H1 — RESOLVED (mitigated, message retained)
+Ten consecutive probes of a known address now return `409,409,409,409,429,429,429,429,429,429`
+— the useful "already registered" message survives for a real person on their first tries,
+while list-probing is refused. This is option (a)+(c) from the original finding.
+
+### I1, I2, I3 — RESOLVED
+`GET /` now `307`s to the app instead of serving create-next-app's starter page;
+`X-Powered-By` is gone; `.env.example` carries placeholders instead of a working password.
+
+### Still open — the four Mediums
+M1 (no security headers), M2 (CSRF is SameSite-only), M3 (`shadcn` CLI as a runtime
+dependency), M4 (no absolute session lifetime). None blocks ship by severity — each is a
+missing layer behind a control that currently works — but none is fixed either.
+
+### Found while re-verifying: an edit could be lost on close
+Not a security finding, but it surfaced here. `TaskDialog` saved fields on blur with nothing
+awaiting the request, so dismissing the dialog left a PATCH in flight that a navigation could
+cancel — silently losing the edit, and contradicting the file's own comment that a dialog
+"must not be able to lose typing". Closing now waits for in-flight saves. It had been
+producing a wandering e2e flake (a different test each run); four consecutive full-suite runs
+are clean.
+
+## Verdict after re-audit
+
+**0 Critical, 0 High, 4 Medium, 0 Info.** Nothing blocks release on severity. The four
+Mediums remain open and are listed above.

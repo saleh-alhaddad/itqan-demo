@@ -5,6 +5,7 @@ import { PrismaClientKnownRequestError } from '@/generated/prisma/internal/prism
 import { provisionNewAccount } from '@/lib/provisioning'
 import { createSession, buildSessionCookie } from '@/lib/auth/session'
 import { apiError } from '@/lib/api/errors'
+import { bucketsFor, checkThrottle, clientIp, recordFailure } from '@/lib/auth/throttle'
 
 /**
  * Signup schema, shared shape with the form so the two cannot disagree about what a valid
@@ -23,6 +24,20 @@ export async function POST(request: Request) {
     return apiError('INVALID_INPUT', 400, 'Check the email, password and name and try again.')
   }
 
+  // harden H1. Signup answers 409 for an address that already exists, which is what makes
+  // the form usable — and also an enumeration oracle. Rather than remove the useful message,
+  // the surface is throttled per IP so probing an address list is impractical rather than
+  // instant. The trade is recorded in decisions.md.
+  const buckets = bucketsFor(clientIp(request))
+  const gate = await checkThrottle(buckets, 'signup')
+  if (!gate.allowed) {
+    const seconds = Math.ceil(gate.retryAfterMs / 1000)
+    const res = apiError('TOO_MANY_ATTEMPTS', 429,
+      `Too many attempts. Try again in ${seconds} second${seconds === 1 ? '' : 's'}.`)
+    res.headers.set('Retry-After', String(seconds))
+    return res
+  }
+
   let provisioned
   try {
     provisioned = await provisionNewAccount(parsed.data)
@@ -30,6 +45,8 @@ export async function POST(request: Request) {
     // P2002 = unique violation. The email column is citext, so this also catches a signup
     // that differs from an existing account only by case.
     if (err instanceof PrismaClientKnownRequestError && err.code === 'P2002') {
+      // A hit on an existing address counts as a failure: that is the probe we are slowing.
+      await recordFailure(buckets, 'signup')
       return apiError('EMAIL_TAKEN', 409, 'An account with that email already exists.')
     }
     throw err
