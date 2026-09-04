@@ -41,6 +41,14 @@ export default async function BoardsPage() {
                 <span className="text-muted-foreground text-xs">
                   {team.role === 'OWNER' ? 'Owner' : 'Member'}
                 </span>
+                {/* The only route to team settings. Without it the page exists and nothing
+                    links to it — the same shape of gap as a redirect to a missing page. */}
+                <Link
+                  href={`/teams/${team.id}/settings`}
+                  className="text-muted-foreground hover:text-foreground ml-auto text-xs underline underline-offset-4"
+                >
+                  Team settings
+                </Link>
               </div>
 
               {team.boards.length === 0 ? (

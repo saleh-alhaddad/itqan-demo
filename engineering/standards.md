@@ -12,6 +12,11 @@ Dates/timezones: A test for timezone-correctness must not itself be timezone-dep
                  in Tokyo and failed in Los Angeles. Build "today" from LOCAL fields, due
                  dates from UTC fields, and run the suite under TZ=America/Los_Angeles and
                  TZ=Asia/Tokyo.  · learned in T11 · 2026-09-04
+Reachability:    A page with no inbound link is unbuilt, however well it renders. Team
+                 settings passed every server-side check while nothing in the UI linked to
+                 it. E2E should NAVIGATE like a user (click the link) rather than jump to a
+                 URL, so reachability is proven as a side effect.
+                 · learned in T12 · 2026-09-04
 Journey cover:   Test every ENTRY POINT a real user has, not just every behaviour. 24 e2e
                  tests missed that login landed on a 404 because all of them signed up, and
                  signup redirects elsewhere. Count journeys, not assertions.

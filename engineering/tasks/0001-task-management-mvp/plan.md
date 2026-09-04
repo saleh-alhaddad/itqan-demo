@@ -467,7 +467,7 @@ Shape:      `src/app/api/teams/route.ts`, `src/app/api/teams/[teamId]/route.ts`,
             boundary. Both, and the test asserts the server one directly rather than through
             the UI.
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 13 — Assignees
 Goal:       Tasks can be assigned to team members, and only to team members — including

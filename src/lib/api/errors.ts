@@ -14,6 +14,12 @@ export type ErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'NOT_FOUND'
   | 'UNAUTHENTICATED'
+  /** SC7: a deliberately SPECIFIC miss. Adding a member by email tells the actor that no
+      account exists, because the alternative is a silent no-op they cannot diagnose. It is
+      also an enumeration oracle, which `harden` is tasked with reconciling. */
+  | 'NO_SUCH_ACCOUNT'
+  /** I6: a team must always keep at least one owner. */
+  | 'LAST_OWNER'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {

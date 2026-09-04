@@ -461,3 +461,15 @@ Answer:   Run T12 through T18 continuously. Stop only at a gate, an unresolvable
 Locks:    `state.json.mode.loop` stays `loop`; commit consent stays `gate` in the ledger but
           the user's instruction authorises committing each finished slice without pausing —
           the end-of-run report still shows every change.
+
+### R17 · construct/T12 · 2026-09-04 · A PAGE NOTHING LINKED TO
+The team settings page rendered correctly server-side (200, members listed) while its e2e
+failed. The tests were reaching it by asking the API for a team id — and the reason they had
+to was that **nothing in the UI linked to it**. The page existed and was unreachable: the same
+shape of gap as the login redirect to a missing page (R13), one step earlier.
+Fixed by adding the navigation a user actually needs — "Team settings" from each team on the
+board list and from the board header, plus a "Boards" link back from a board, which was
+otherwise a dead end. The e2e now clicks those links, which proves reachability as a
+side effect of testing the feature.
+Rule already recorded from R13 (count entry points, not assertions) — this is its second
+instance in two days. Extended in standards.md to: a page with no inbound link is unbuilt.

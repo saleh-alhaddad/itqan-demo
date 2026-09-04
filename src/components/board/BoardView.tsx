@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { AddColumn } from './AddColumn'
 import { DragContext } from './DragContext'
 import { BoardAnnouncer } from './BoardAnnouncer'
@@ -24,7 +25,22 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     <BoardAnnouncer>
     <div className="flex h-full flex-col" data-testid="board-view">
       <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-        <h1 className="truncate text-lg font-semibold">{board.name}</h1>
+        <div className="flex min-w-0 items-baseline gap-3">
+          {/* A board with no way back to the board list is a dead end. */}
+          <Link
+            href="/boards"
+            className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline underline-offset-4"
+          >
+            Boards
+          </Link>
+          <h1 className="truncate text-lg font-semibold">{board.name}</h1>
+        </div>
+        <Link
+          href={`/teams/${board.teamId}/settings`}
+          className="text-muted-foreground hover:text-foreground shrink-0 text-sm underline underline-offset-4"
+        >
+          Team settings
+        </Link>
       </div>
 
       {board.columns.length === 0 ? (
