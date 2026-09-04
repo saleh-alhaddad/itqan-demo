@@ -103,6 +103,39 @@ Named exclusions, so scope cannot drift into them silently:
 - **Admin console, analytics, or reporting.**
 - **Mobile applications.** The web UI is responsive; there is no native app.
 - **Third-party integrations** (calendar sync, Slack, GitHub, import/export).
+
+### Declined from the design reference · 2026-09-04
+
+`design-refs/board-reference.png` was adopted for its **visual language only**. Every
+capability it shows that this product lacks was put to the user as an explicit scope
+question and **declined for this version**. Recorded here, in the spec's own exclusion list,
+so the decision has one home and is not re-litigated by a later reading of the reference.
+
+- **B1 — Tags / labels.** Already excluded above; restated because the reference's entire
+  card layout is built around a tag row, and a future reader may mistake its absence for an
+  oversight rather than a decision.
+- **B2 — Progress bars and percentages.** Declined. Note it has **no honest data source
+  without B3**: the only alternatives are a manual number that goes stale the moment it is
+  not updated, or derivation from checklists, which are themselves declined. A progress bar
+  nobody maintains is worse than none, because it is believed.
+- **B3 — Checklists / subtasks.** Already excluded above; restated as the missing
+  prerequisite for B2.
+- **B4 — Attachments and attachment counts.** Already excluded above.
+- **B5 — Image thumbnails on cards.** Declined; a subset of B4.
+- **B6 — Global search.** Already excluded above.
+- **B7 — Suite navigation** (dashboard, schedule, notes, products, reports, clients,
+  support). Declined. These are separate products; the reference is a suite and this is one
+  board application.
+- **B8 — Collapsible columns.** Declined. Small in appearance, but it is per-user persisted
+  UI state, of which this product currently has none. The column caret drawn in `design.md`'s
+  anatomy sketch was deliberately **not built**, rather than shipped inert.
+- **B9 — Photograph avatars.** Declined. The data model stores a name and an email; avatars
+  render as initials. A photograph would require upload (⊆ B4) or a third-party dependency.
+- **B10 — Times of day on cards.** Declined — and unlike the rest, this is a **contradiction,
+  not an absence**. `Task.dueDate` is a calendar DATE with no time *by decision*, so that a
+  due date means the same day for every viewer. Adding a time would reopen the timezone
+  question this spec closed deliberately, and would invalidate SC4's proof. Declining B10 is
+  therefore not a scope choice but an upholding of an existing one.
 - **Multi-factor authentication, SSO, or OAuth providers.**
 - **Offline support or optimistic-conflict resolution.**
 

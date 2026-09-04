@@ -439,3 +439,25 @@ Not in it: every item in design.md's appendix (tags, progress bars, checklists, 
    fields, and the suite is run under UTC, America/Los_Angeles, Asia/Tokyo and
    Pacific/Kiritimati (UTC+14). All 111 pass in all four.
 Recorded as a convention in standards.md.
+
+### Q21 · construct · 2026-09-04 · SCOPE DECISION (spec amendment, user-directed)
+Question: the ten features present in the design reference but absent from the spec (B1–B10
+          in design.md's appendix) — adopt any for this version?
+Answer:   **All ten declined for this version.**
+Locks:    `spec.md`'s "Not doing" list gains a **"Declined from the design reference"**
+          subsection covering B1–B10, with two points called out: B10 (times on cards) is a
+          CONTRADICTION of the DATE decision rather than an absence — declining it upholds an
+          existing decision rather than making a new one — and B2 (progress bars) has no
+          honest data source without B3.
+          The spec is a gated artifact; this amendment only NARROWS scope, invalidates no
+          success criterion, and was directed by the user, which is its approval.
+          Consequence: the reference is now closed as a source of scope. A later reader
+          seeing a tag row or a progress bar in it should read this list, not re-open it.
+
+### Q22 · construct · 2026-09-04 · RUN CADENCE
+Question: keep pausing at each slice?
+Answer:   Run T12 through T18 continuously. Stop only at a gate, an unresolvable failure, or a
+          decision that is genuinely the user's. Report once at the end.
+Locks:    `state.json.mode.loop` stays `loop`; commit consent stays `gate` in the ledger but
+          the user's instruction authorises committing each finished slice without pausing —
+          the end-of-run report still shows every change.
