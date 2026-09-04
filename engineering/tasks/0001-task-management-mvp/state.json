@@ -33,7 +33,7 @@
       "status": "in_progress",
       "validated": false,
       "artifact": null,
-      "note": "T01-T07 done. 56 integration + 9 e2e green, lint clean, build exit 0. T07 closed both R5 deferrals AND found a real data leak (R8): a stranger's 404 carried the victim board's contents in the RSC payload, because access was checked in the route layout while the page loaded unscoped data and Next renders those concurrently. Fixed by moving the membership predicate into the query (loadBoardFor); recorded as an ADR in decisions.md and guarded by a mutation-checked e2e that asserts the response BODY. Next slice: T08 (columns)."
+      "note": "T01-T10 done \u2014 the board is functional end to end: signup -> board -> columns -> tasks -> move (keyboard AND drag). 91 integration + 24 e2e green, lint clean, build exit 0. T10 kept the plan's build order: keyboard move proven BEFORE the drag library, which is why drag's two regressions (live region destroyed by the move it announced; dragHandleProps nesting buttons) were caught immediately. A screenshot also found the app rendering entirely in serif (R12) while every test was green. Next slice: T11 (due dates)."
     },
     "verify": {
       "status": "todo",
@@ -60,14 +60,15 @@
     }
   },
   "open_items_for_resume": [
-    "IN PROGRESS: construct. T01-T07 done. Next slice: T08 (columns: create/rename/delete/reorder). Task Status: lines in plan.md are the per-slice resume marker.",
+    "IN PROGRESS: construct. T01-T10 done. Next slice: T11 (due dates: classifier + badge). Task Status: lines in plan.md are the per-slice resume marker.",
     "RESOLVED 2026-09-04: git isolation. main now has baseline commit d4da6a1; branch task/0001-task-management-mvp created off it and is the working branch.",
     "RESOLVED 2026-09-04: I5 dense-integer ordering settled in plan.md as decision D1 \u2014 dense integers rewritten in one transaction, with NO unique(parentId, position) constraint; density asserted by test instead. Sparse/fractional keys recorded as the rejected alternative with a revisit trigger.",
     "OPEN: no password reset exists. Largest MVP product risk, accepted knowingly at the spec gate.",
     "SCHEDULED: harden must run before release (self-hosted credentials + SC7 enumeration oracle).",
     "NOTE: `prisma` CLI npm 'latest' is 8.0.0-rc.12 \u2014 both prisma packages are pinned to 7.10.0 in package.json. Do not run `prisma@latest`.",
     "RULE (learned T07, in standards.md + decisions.md): team-scoped reads embed the membership predicate IN THE QUERY. A layout check is never the boundary \u2014 layouts and pages render concurrently.",
-    "RULE (learned T07): the proving set is all four of lint, test, test:e2e, build. A lint error was committed past once before this was written down."
+    "RULE (learned T07): the proving set is all four of lint, test, test:e2e, build. A lint error was committed past once before this was written down.",
+    "RULE (learned T10): a visual check is its own verification step. Behaviour-only assertions cannot see a font/colour/layout regression \u2014 verify must render and look."
   ],
   "halt_reason": null
 }
