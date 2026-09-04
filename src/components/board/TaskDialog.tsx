@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2 } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConfirmDialog } from './ConfirmDialog'
+import { DueBadge } from './DueBadge'
 import type { BoardTask } from './types'
 
 /**
@@ -81,6 +82,40 @@ export function TaskDialog({
               />
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="task-due" className="text-sm font-medium">Due date</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="task-due"
+                  type="date"
+                  className="w-auto"
+                  disabled={saving}
+                  defaultValue={asDateInputValue(task.dueDate)}
+                  onChange={(e) => {
+                    // A date input's empty value is '', which must become null — the API
+                    // distinguishes "leave alone" (undefined) from "clear" (null).
+                    void save({ dueDate: e.currentTarget.value || null })
+                  }}
+                />
+                {task.dueDate ? (
+                  <>
+                    <DueBadge dueDate={task.dueDate} />
+                    {/* SC4's other half: a due date must be clearable, not just settable. */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Clear due date"
+                      disabled={saving}
+                      onClick={() => void save({ dueDate: null })}
+                    >
+                      <X className="size-3.5" aria-hidden="true" />
+                      Clear
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
             <div className="flex justify-end border-t pt-4">
               <Button variant="ghost" className="text-destructive" onClick={() => setConfirming(true)}>
                 <Trash2 className="size-4" aria-hidden="true" />
@@ -107,4 +142,10 @@ export function TaskDialog({
       />
     </>
   )
+}
+
+/** A DATE column value as the `YYYY-MM-DD` an `<input type="date">` expects. */
+function asDateInputValue(due: Date | string | null): string {
+  if (!due) return ''
+  return typeof due === 'string' ? due.slice(0, 10) : due.toISOString().slice(0, 10)
 }

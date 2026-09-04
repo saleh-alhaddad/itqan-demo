@@ -6,6 +6,7 @@ import { GripVertical, MessageSquare } from 'lucide-react'
 import { TaskDialog } from './TaskDialog'
 import { MoveTaskMenu } from './MoveTaskMenu'
 import { AvatarStack } from './AvatarStack'
+import { DueBadge } from './DueBadge'
 import { CountChip } from './CountChip'
 import type { BoardColumn, BoardTask } from './types'
 
@@ -80,16 +81,20 @@ export function TaskCard({
               </span>
             ) : null}
 
-            {task.assignees.length > 0 || task.commentCount > 0 ? (
+            {task.assignees.length > 0 || task.commentCount > 0 || task.dueDate ? (
               <span className="mt-3 flex items-center justify-between gap-2">
                 <AvatarStack people={task.assignees} />
-                {task.commentCount > 0 ? (
-                  <CountChip
-                    icon={<MessageSquare className="size-3" />}
-                    count={task.commentCount}
-                    label="comments"
-                  />
-                ) : null}
+                <span className="flex items-center gap-1.5">
+                  {/* Absent, not empty, when there is no due date (design.md). */}
+                  <DueBadge dueDate={task.dueDate} />
+                  {task.commentCount > 0 ? (
+                    <CountChip
+                      icon={<MessageSquare className="size-3" />}
+                      count={task.commentCount}
+                      label="comments"
+                    />
+                  ) : null}
+                </span>
               </span>
             ) : null}
           </button>

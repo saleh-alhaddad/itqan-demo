@@ -425,3 +425,17 @@ Not in it: every item in design.md's appendix (tags, progress bars, checklists, 
    which defeats the reason it exists.
 4. The column caret from design.md's anatomy sketch was **not built** — it belongs to B8
    (collapsible columns), an open scope question. Shipping it inert would be a dead control.
+
+### R16 · construct/T11 · 2026-09-04 · THE TEST FOUND A REAL TIMEZONE BUG, THEN WAS ITSELF ONE
+1. **A heuristic in the classifier was wrong.** The first version guessed whether to read a
+   Date's UTC or local calendar fields based on whether it looked like midnight. That
+   classified a task due 23:59 yesterday as "due today" for anyone east of UTC. Replaced with
+   two explicit functions: a DUE date is always read in UTC (a DATE column arrives as UTC
+   midnight, so its UTC fields ARE its calendar day); "today" is always read locally, because
+   today is a fact about where the viewer is.
+2. **Then the test turned out to be timezone-dependent too.** It built `TODAY` from a
+   UTC-midnight instant, which is a different calendar day depending on where it runs — the
+   suite passed in Tokyo and failed 4 cases in Los Angeles. `TODAY` is now built from local
+   fields, and the suite is run under UTC, America/Los_Angeles, Asia/Tokyo and
+   Pacific/Kiritimati (UTC+14). All 111 pass in all four.
+Recorded as a convention in standards.md.

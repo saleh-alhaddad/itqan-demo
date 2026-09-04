@@ -205,3 +205,21 @@ nothing because the tint only restates which column a card is already inside.
 
 Nothing from design.md's appendix was built. The column caret was deliberately omitted
 rather than shipped inert, since it belongs to the collapsible-columns scope question.
+
+## 2026-09-04 · T11 due dates — classifier and badge (SC4)
+`classifyDueDate(due, today)` takes `today` as a parameter, which is what makes SC4's fixed
+dates assertable at all. Due dates are read in UTC (a DATE column arrives as UTC midnight, so
+its UTC fields are its calendar day); "today" is read locally, because today is a fact about
+where the viewer is. Comparison is by calendar day, never elapsed hours — a task due 23:59
+yesterday is one minute past and a whole day overdue.
+
+The badge carries text naming the state and a per-state icon, so greyscale and colour-blindness
+lose nothing. That matters more than usual here: `--due-soon` shares a hue family with the
+amber column tint, so on an amber card the colour distinction is weak while the text is not.
+
+Due dates can be set and cleared; the API already distinguished `undefined` (leave alone) from
+`null` (clear), which is what makes the clear path work. Badge contrast is asserted against the
+painted pixel of the tinted card it sits on.
+
+The suite runs under four timezones spanning UTC-8 to UTC+14. Both the classifier and, at
+first, the test itself had timezone bugs — see intake R16.

@@ -442,7 +442,7 @@ Shape:      `src/lib/dates.ts` (pure, takes `today` as an argument — a functio
             requires), `src/components/board/DueBadge.tsx`, two CSS custom properties added
             to the shadcn token block.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 12 — Teams and members: add by email, remove, roles
 Goal:       An owner can grow and shrink a team, and the team can never be left ownerless.

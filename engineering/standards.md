@@ -7,6 +7,11 @@ Test tooling:    Vitest 5.0.0 (unit + integration, `tests/**/*.test.ts`, node en
                  `fileParallelism: false` because integration tests share one database) and
                  Playwright 1.62.1 (e2e, `e2e/**/*.spec.ts`, chromium, webServer on :3100).
                  Commands: `pnpm test` · `pnpm test:e2e`.  · established in T01 · 2026-09-04
+Dates/timezones: A test for timezone-correctness must not itself be timezone-dependent. The
+                 due-date suite first built "today" from a UTC-midnight instant, so it passed
+                 in Tokyo and failed in Los Angeles. Build "today" from LOCAL fields, due
+                 dates from UTC fields, and run the suite under TZ=America/Los_Angeles and
+                 TZ=Asia/Tokyo.  · learned in T11 · 2026-09-04
 Journey cover:   Test every ENTRY POINT a real user has, not just every behaviour. 24 e2e
                  tests missed that login landed on a 404 because all of them signed up, and
                  signup redirects elsewhere. Count journeys, not assertions.
