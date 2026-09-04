@@ -247,8 +247,7 @@ Acceptance: 1. Correct credentials set a session cookie and redirect to the boar
             2. Logout clears the session; the previously working session no longer grants
                access on the next request.
             3. An unauthenticated request to any `(app)` route redirects to `/login`.
-               — **DEFERRED to T07** (no `(app)` route exists yet; the guard itself is
-               built in `src/app/(app)/layout.tsx`; see intake R5).
+               — **CLOSED in T07** by `e2e/board.spec.ts`; see intake R5.
             4. The login page renders **no** "forgot password" link (there is no reset flow;
                a dead link would be dishonest — `design.md`).
 Shape:      `src/app/api/auth/login/route.ts`, `logout/route.ts`,
@@ -311,7 +310,7 @@ Shape:      `src/app/api/boards/[boardId]/route.ts` (awaits `params` — Next 16
             via `_count` — the board never ships comment bodies, which keeps the polled
             payload small (spec Risks names this payload as the thing to watch).
 Size:       M
-Status:     todo
+Status:     done
 
 ### Task 08 — Columns: create, rename, delete, reorder
 Goal:       Columns are fully user-editable, and reordering leaves positions dense and stable.

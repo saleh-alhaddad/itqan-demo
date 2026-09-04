@@ -281,3 +281,22 @@ Ruling:    `errors.ts` was written during T04 and T06 built its guards on top, r
            T04 hand-rolling an error shape for T06 to replace.
 Why:       plan.md's invariants section says "One `notFound()`" — a second error shape
            existing even briefly is the thing that breaks SC5's byte-identity later.
+
+### R5 · UPDATE · 2026-09-04 — both deferred criteria CLOSED in T07
+`e2e/board.spec.ts` now proves both: signup redirects to a board rendering three columns
+with no setup step (T04 #1 / SC1), and a signed-out visit to an `(app)` route lands on
+`/login` (T05 #3). A third e2e also proves SC5 through the browser: a signed-in stranger
+following another person's board URL receives a 404.
+
+### R7 · construct/T07 · 2026-09-04 · DEFECT FOUND BY A PASSING TEST
+Situation: the signed-out-redirect e2e PASSED while the server logged
+           `⨯ Error [ApiError]: Sign in to continue.` on every signed-out visit.
+Cause:     the board page called `requireUser()`, which throws an `ApiError` — the right
+           idiom for a route handler, where a wrapper turns it into a 401. Thrown from a
+           Server Component it escapes as an unhandled error, so an ordinary signed-out
+           visit was logged at error level.
+Fix:       added `requireUserOrRedirect()` for pages; handlers keep `requireUser()`. The
+           layout uses it too, so the redirect lives in one place.
+Worth remembering: the assertion was about the user-visible outcome and the outcome was
+           correct — the defect was only visible in the server log. A green suite is not
+           the same as a clean run.

@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { ApiError } from '@/lib/api/errors'
 import { readSession, SESSION_COOKIE_NAME } from '@/lib/auth/session'
@@ -30,10 +31,24 @@ export async function currentUser() {
   return session?.user ?? null
 }
 
-/** Distinct from `deny()`: "you are not signed in" is not a leak, it is the sign-in prompt. */
+/**
+ * Distinct from `deny()`: "you are not signed in" is not a leak, it is the sign-in prompt.
+ *
+ * For ROUTE HANDLERS only — it throws an ApiError, which the route wrapper turns into a 401.
+ * Pages must use `requireUserOrRedirect()` instead: a thrown ApiError escapes a Server
+ * Component as an unhandled error, so every signed-out visit would be logged at error level
+ * for what is a completely ordinary event.
+ */
 export async function requireUser() {
   const user = await currentUser()
   if (!user) throw new ApiError('UNAUTHENTICATED', 401, 'Sign in to continue.')
+  return user
+}
+
+/** The page-side equivalent: signed-out visitors are redirected, not thrown at. */
+export async function requireUserOrRedirect() {
+  const user = await currentUser()
+  if (!user) redirect('/login')
   return user
 }
 

@@ -72,3 +72,23 @@ OWNER check, and making the refusal distinguishable each turn the suite red.
 
 **Two acceptance criteria are deferred, not done** (intake R5): T04's signup-redirect E2E
 and T05's signed-out-redirect E2E both need a page that T07/T15 supply.
+
+## 2026-09-04 · T07 board read endpoint and board screen
+`GET /api/boards/:id` returns the whole board in one query — columns and tasks ordered by
+position, assignees flattened, and comment **counts** rather than bodies, because this is
+the payload the 10-second poll will re-fetch. Every relation uses `select`, not `include`:
+an `include` on assignees would ship every User column, one of which is the password hash.
+
+The screen implements design.md's four states: skeleton cards matching the real card
+geometry (so nothing shifts when data lands), per-surface empty states, and an error state
+that **keeps a board already on screen** when a re-fetch fails — which matters most once
+polling makes that failure unattended. Horizontal scrolling lives in the column rail, so
+the document never scrolls in two directions at once.
+
+**Closed the two deferrals from R5**: signup-lands-on-a-board (SC1) and the signed-out
+redirect are both proven end-to-end now, along with a browser-level SC5 test where a
+signed-in stranger following another person's board URL gets a 404.
+
+**A defect a passing test hid (R7):** the redirect e2e was green while the server logged an
+`ApiError` on every signed-out visit — the page used the route-handler guard, which throws.
+Pages now use `requireUserOrRedirect()`.

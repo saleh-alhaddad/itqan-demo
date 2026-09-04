@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { currentUser } from '@/lib/auth/guard'
+import { requireUserOrRedirect } from '@/lib/auth/guard'
 
 /**
  * Every route in the (app) group is behind this layout, so authentication is structural
@@ -10,7 +9,6 @@ import { currentUser } from '@/lib/auth/guard'
  * request through the guards: a signed-in stranger must not reach another team's board.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await currentUser()
-  if (!user) redirect('/login')
+  await requireUserOrRedirect()
   return <>{children}</>
 }
