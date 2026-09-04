@@ -56,13 +56,7 @@ export function BoardView({ initialBoard, viewerId }: { initialBoard: Board; vie
           <AddColumn boardId={board.id} variant="empty" />
         </div>
       ) : (
-        <DragContext
-          boardId={board.id}
-          columns={board.columns}
-          members={board.members}
-          viewerId={viewerId}
-          viewerIsOwner={board.viewerIsOwner}
-        />
+        <DragContext board={board} viewerId={viewerId} viewerIsOwner={board.viewerIsOwner} />
       )}
     </div>
     </BoardAnnouncer>

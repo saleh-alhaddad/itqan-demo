@@ -576,7 +576,7 @@ Shape:      `src/components/board/useBoardPoll.ts`.
             is **not** built now; it is recorded in `spec.md` Risks as the response if poll
             volume becomes a problem. Building it now would be scope the gate did not approve.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 18 — Authorization and permission matrix sweep
 Goal:       Prove SC5 and SC6 exhaustively, across every endpoint that exists — not per
