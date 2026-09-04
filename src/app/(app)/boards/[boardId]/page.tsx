@@ -22,7 +22,7 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
 
   return (
     <main className="h-svh">
-      <BoardView initialBoard={board} />
+      <BoardView initialBoard={board} viewerId={user.id} />
     </main>
   )
 }

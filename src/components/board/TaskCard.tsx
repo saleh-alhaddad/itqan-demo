@@ -25,13 +25,15 @@ import type { BoardColumn, BoardTask, Member } from './types'
  * buttons inside a button.
  */
 export function TaskCard({
-  task, index, columns, columnName, members,
+  task, index, columns, columnName, members, viewerId, viewerIsOwner,
 }: {
   task: BoardTask
   index: number
   columns: Pick<BoardColumn, 'id' | 'name' | 'tasks'>[]
   columnName: string
   members: Member[]
+  viewerId: string
+  viewerIsOwner: boolean
 }) {
   const [open, setOpen] = useState(false)
 
@@ -100,7 +102,14 @@ export function TaskCard({
             ) : null}
           </button>
 
-          <TaskDialog task={task} members={members} open={open} onOpenChange={setOpen} />
+          <TaskDialog
+            task={task}
+            members={members}
+            viewerId={viewerId}
+            viewerIsOwner={viewerIsOwner}
+            open={open}
+            onOpenChange={setOpen}
+          />
         </div>
       )}
     </Draggable>

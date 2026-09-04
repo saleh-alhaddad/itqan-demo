@@ -22,6 +22,8 @@ export type ErrorCode =
   | 'LAST_OWNER'
   /** I4: an assignee must be a member of the team owning the task's board. */
   | 'NOT_A_MEMBER'
+  /** SC6: the actor may see the resource but not perform THIS action on it. */
+  | 'FORBIDDEN'
 
 export class ApiError extends Error {
   constructor(readonly code: ErrorCode, readonly status: number, message: string) {

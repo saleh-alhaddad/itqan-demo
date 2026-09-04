@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ConfirmDialog } from './ConfirmDialog'
 import { DueBadge } from './DueBadge'
 import { AssigneePicker } from './AssigneePicker'
+import { CommentThread } from './CommentThread'
 import type { BoardTask, Member } from './types'
 
 /**
@@ -23,10 +24,12 @@ import type { BoardTask, Member } from './types'
  * and comments (T14).
  */
 export function TaskDialog({
-  task, members, open, onOpenChange,
+  task, members, viewerId, viewerIsOwner, open, onOpenChange,
 }: {
   task: BoardTask
   members: Member[]
+  viewerId: string
+  viewerIsOwner: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -48,7 +51,7 @@ export function TaskDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="sr-only">Task details</DialogTitle>
           </DialogHeader>
@@ -136,6 +139,13 @@ export function TaskDialog({
                 ) : null}
               </div>
             </div>
+
+            <CommentThread
+              taskId={task.id}
+              viewerId={viewerId}
+              viewerIsOwner={viewerIsOwner}
+              open={open}
+            />
 
             <div className="flex justify-end border-t pt-4">
               <Button variant="ghost" className="text-destructive" onClick={() => setConfirming(true)}>

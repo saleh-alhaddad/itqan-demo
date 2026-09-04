@@ -20,11 +20,13 @@ import type { BoardColumn, Member } from './types'
  * moving a card between columns re-tints it for free.
  */
 export function ColumnView({
-  column, columns, members,
+  column, columns, members, viewerId, viewerIsOwner,
 }: {
   column: BoardColumn
   columns: BoardColumn[]
   members: Member[]
+  viewerId: string
+  viewerIsOwner: boolean
 }) {
   const [adding, setAdding] = useState(false)
 
@@ -60,6 +62,8 @@ export function ColumnView({
                   columns={columns}
                   columnName={column.name}
                   members={members}
+                  viewerId={viewerId}
+                  viewerIsOwner={viewerIsOwner}
                 />
               ))
             )}

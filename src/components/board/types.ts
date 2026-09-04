@@ -17,5 +17,6 @@ export type Board = {
   name: string
   teamId: string
   members: Member[]
+  viewerIsOwner: boolean
   columns: BoardColumn[]
 }

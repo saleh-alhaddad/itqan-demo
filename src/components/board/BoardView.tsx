@@ -18,7 +18,7 @@ import type { Board } from './types'
  * change nothing on screen. That bug was real here — a created column never appeared — and
  * it would have silently defeated polling in T17 as well.
  */
-export function BoardView({ initialBoard }: { initialBoard: Board }) {
+export function BoardView({ initialBoard, viewerId }: { initialBoard: Board; viewerId: string }) {
   const board = initialBoard
 
   return (
@@ -50,7 +50,13 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           <AddColumn boardId={board.id} variant="empty" />
         </div>
       ) : (
-        <DragContext boardId={board.id} columns={board.columns} members={board.members} />
+        <DragContext
+          boardId={board.id}
+          columns={board.columns}
+          members={board.members}
+          viewerId={viewerId}
+          viewerIsOwner={board.viewerIsOwner}
+        />
       )}
     </div>
     </BoardAnnouncer>

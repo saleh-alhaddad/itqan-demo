@@ -17,11 +17,13 @@ import type { BoardColumn, Member } from './types'
  * revert is the worst outcome — the user believes the move happened.
  */
 export function DragContext({
-  boardId, columns, members,
+  boardId, columns, members, viewerId, viewerIsOwner,
 }: {
   boardId: string
   columns: BoardColumn[]
   members: Member[]
+  viewerId: string
+  viewerIsOwner: boolean
 }) {
   const router = useRouter()
   const announce = useAnnounce()
@@ -90,7 +92,14 @@ export function DragContext({
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full gap-4 p-4">
           {shown.map((column) => (
-            <ColumnView key={column.id} column={column} columns={shown} members={members} />
+            <ColumnView
+              key={column.id}
+              column={column}
+              columns={shown}
+              members={members}
+              viewerId={viewerId}
+              viewerIsOwner={viewerIsOwner}
+            />
           ))}
           <AddColumn boardId={boardId} />
         </div>

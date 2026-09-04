@@ -504,7 +504,7 @@ Shape:      `src/app/api/tasks/[taskId]/comments/route.ts`,
             The delete rule is `author OR team owner` — expressed once in the handler, not
             split between a UI condition and a server condition that can drift.
 Size:       S
-Status:     todo
+Status:     done
 
 ### Task 15 — Board list and board lifecycle
 Goal:       A user with more than one board can find them, create boards, and only owners
